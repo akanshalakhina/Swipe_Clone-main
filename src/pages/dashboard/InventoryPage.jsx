@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Search, Package, Edit, Trash2, AlertTriangle, X, Download } from 'lucide-react'
 
 import { useProducts } from '../../hooks/useProducts'
 import Button from '../../components/ui/Button'
 import { toast } from 'react-hot-toast'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 export default function InventoryPage() {
   const [search, setSearch] = useState('')
@@ -14,6 +15,21 @@ export default function InventoryPage() {
   const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: '', category: 'General', sku: '', unit: 'Pcs', hsn: '', gstRate: '18' })
   
   const { products, isLoading, isError, createProduct, updateProduct, deleteProduct } = useProducts()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/new')) {
+      setIsAddModalOpen(true)
+    }
+  }, [location.pathname])
+
+  const closeAddModal = () => {
+    setIsAddModalOpen(false)
+    if (location.pathname.endsWith('/new')) {
+      navigate('/app/inventory')
+    }
+  }
 
   if (isLoading) return <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
   if (isError) return <div className="p-8 text-center text-red-500">Failed to load inventory. Please ensure you have a business set up.</div>
@@ -33,7 +49,7 @@ export default function InventoryPage() {
         lowAlert: 5
       })
       toast.success('Product added successfully')
-      setIsAddModalOpen(false)
+      closeAddModal()
       setNewProduct({ name: '', price: '', stock: '', category: 'General', sku: '', unit: 'Pcs', hsn: '', gstRate: '18' })
     } catch (err) {
       toast.error('Failed to add product: ' + err.message)
@@ -209,7 +225,7 @@ export default function InventoryPage() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
-              onClick={() => setIsAddModalOpen(false)}
+              onClick={closeAddModal}
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -219,7 +235,7 @@ export default function InventoryPage() {
             >
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-gray-900">Add New Product</h2>
-                <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <button onClick={closeAddModal} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <X size={20} className="text-gray-400" />
                 </button>
               </div>
@@ -331,7 +347,7 @@ export default function InventoryPage() {
                   </div>
                 </div>
                 <div className="pt-4 flex gap-3">
-                  <Button variant="secondary" fullWidth onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                  <Button variant="secondary" fullWidth onClick={closeAddModal}>Cancel</Button>
                   <Button type="submit" fullWidth>Save Product</Button>
                 </div>
               </form>

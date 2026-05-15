@@ -18,6 +18,8 @@ const EWayBillsPage = lazy(() => import('./pages/landing/EWayBillsPage'))
 const SwipeAIPage = lazy(() => import('./pages/landing/SwipeAIPage'))
 const OnlineStorePage = lazy(() => import('./pages/landing/OnlineStorePage'))
 const IntegrationsPage = lazy(() => import('./pages/landing/IntegrationsPage'))
+const ApiPage = lazy(() => import('./pages/landing/ApiPage'))
+const ProductFeaturePage = lazy(() => import('./pages/landing/ProductFeaturePage'))
 
 // Auth
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
@@ -64,11 +66,21 @@ export default function App() {
           <Route path="/download" element={<DownloadPage />} />
           
           {/* Products */}
-          <Route path="/einvoices" element={<EInvoicesPage />} />
-          <Route path="/ewaybills" element={<EWayBillsPage />} />
+          <Route path="/invoices" element={<ProductFeaturePage title="Invoices" description="Create them in 10 seconds" iconName="FileText" />} />
+          <Route path="/quotations" element={<ProductFeaturePage title="Quotations" description="Send professional quotations" iconName="FileSignature" />} />
+          <Route path="/einvoice" element={<EInvoicesPage />} />
+          <Route path="/ewaybill" element={<EWayBillsPage />} />
+          <Route path="/payment-reminders" element={<ProductFeaturePage title="Auto Reminders" description="Get paid faster with payment reminders" iconName="Bell" />} />
+          <Route path="/exports" element={<ProductFeaturePage title="Exports" description="Go global with export invoices" iconName="Globe" />} />
           <Route path="/swipeai" element={<SwipeAIPage />} />
           <Route path="/onlinestore" element={<OnlineStorePage />} />
+          <Route path="/batch-expiry" element={<ProductFeaturePage title="Batch & Expiry" description="Manage inventory with batch numbers & expiry dates" iconName="PackageCheck" />} />
+          <Route path="/branches" element={<ProductFeaturePage title="Branches & Warehouses" description="Manage multiple locations easily" iconName="Building2" />} />
+          <Route path="/purchase-ai" element={<ProductFeaturePage title="AI Document Scans" description="Upload purchase invoices, POs and more" iconName="ScanLine" />} />
+          <Route path="/shopify" element={<ProductFeaturePage title="Shopify" description="Connect your Shopify store" iconName="ShoppingBag" />} />
           <Route path="/integrations" element={<IntegrationsPage />} />
+          <Route path="/apis" element={<ApiPage />} />
+          <Route path="/digital-signature" element={<ProductFeaturePage title="Digital Signature" description="Digitally sign your invoices in seconds." iconName="PenTool" />} />
         </Route>
 
         {/* Auth */}
@@ -86,8 +98,11 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="invoices" element={<InvoicesPage />} />
           <Route path="purchases" element={<PurchasesPage />} />
+          <Route path="purchases/new" element={<PurchasesPage />} />
           <Route path="inventory" element={<InventoryPage />} />
+          <Route path="inventory/new" element={<InventoryPage />} />
           <Route path="customers" element={<CustomersPage />} />
+          <Route path="customers/new" element={<CustomersPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           

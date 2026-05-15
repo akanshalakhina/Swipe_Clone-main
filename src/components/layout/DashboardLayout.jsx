@@ -409,7 +409,7 @@ export default function DashboardLayout() {
                     <div className="py-1 border-b border-gray-100">
                       <Link to="/app/settings" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Settings size={16} className="text-gray-400"/> Settings</Link>
                       <button onClick={toggleDarkMode} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Moon size={16} className="text-gray-400"/> {isDarkMode ? 'Light Mode' : 'Dark Mode'}</button>
-                      <button className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Zap size={16} className="text-gray-400"/> Keyboard Shortcuts</button>
+                      <button onClick={() => { setUserMenuOpen(false); setShortcutsMenuOpen(true); }} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Zap size={16} className="text-gray-400"/> Keyboard Shortcuts</button>
                       <Link to="/app/help" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><HelpCircle size={16} className="text-gray-400"/> Help & Support</Link>
                     </div>
 

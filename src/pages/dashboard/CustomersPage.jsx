@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Search, Plus, Phone, Mail, MapPin, Edit, Trash2, X, UserPlus, FileText, Download } from 'lucide-react'
 
@@ -6,6 +6,7 @@ import { useCustomers } from '../../hooks/useCustomers'
 import { useInvoices } from '../../hooks/useInvoices'
 import Button from '../../components/ui/Button'
 import { toast } from 'react-hot-toast'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 export default function CustomersPage() {
   const [search, setSearch] = useState('')
@@ -16,6 +17,21 @@ export default function CustomersPage() {
 
   const { customers, isLoading, isError, createCustomer, updateCustomer, deleteCustomer } = useCustomers()
   const { invoices } = useInvoices()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/new')) {
+      setIsAddModalOpen(true)
+    }
+  }, [location.pathname])
+
+  const closeAddModal = () => {
+    setIsAddModalOpen(false)
+    if (location.pathname.endsWith('/new')) {
+      navigate('/app/customers')
+    }
+  }
 
   if (isLoading) return <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
   if (isError) return <div className="p-8 text-center text-red-500">Failed to load customers. Please ensure you have a business set up.</div>
@@ -45,7 +61,7 @@ export default function CustomersPage() {
         createdAt: new Date().toISOString()
       })
       toast.success('Customer added successfully!')
-      setIsAddModalOpen(false)
+      closeAddModal()
       setNewCustomer({ name: '', phone: '', email: '', address: '', gstin: '' })
     } catch (err) {
       toast.error('Failed to add customer: ' + err.message)
@@ -213,7 +229,7 @@ export default function CustomersPage() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
-              onClick={() => setIsAddModalOpen(false)}
+              onClick={closeAddModal}
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -223,7 +239,7 @@ export default function CustomersPage() {
             >
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-gray-900">Add New Customer</h2>
-                <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <button onClick={closeAddModal} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <X size={20} className="text-gray-400" />
                 </button>
               </div>
@@ -282,7 +298,7 @@ export default function CustomersPage() {
                   />
                 </div>
                 <div className="pt-4 flex gap-3">
-                  <Button variant="secondary" fullWidth onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                  <Button variant="secondary" fullWidth onClick={closeAddModal}>Cancel</Button>
                   <Button type="submit" fullWidth>Save Customer</Button>
                 </div>
               </form>

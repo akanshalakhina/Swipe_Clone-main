@@ -1,12 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, X, Send, Bot, User } from 'lucide-react'
+import { MessageCircle, X, Send, ChevronDown } from 'lucide-react'
 import { swipeAISearch } from '../../lib/gemini'
+import Button from '../ui/Button'
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false)
+  const [showDemoModal, setShowDemoModal] = useState(false)
+  const [hasProvidedPhone, setHasProvidedPhone] = useState(false)
+  const [phoneInput, setPhoneInput] = useState('')
+
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi there! I am Swipe AI. How can I help you with your billing and business today?' }
+    { role: 'assistant', content: 'Hello, how can we help you?' }
   ])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -18,11 +23,21 @@ export default function AIChatbot() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, isTyping])
+  }, [messages, isTyping, hasProvidedPhone])
+
+  useEffect(() => {
+    const demoTimer = setTimeout(() => {
+      setShowDemoModal(true)
+    }, 15000)
+
+    return () => {
+      clearTimeout(demoTimer)
+    }
+  }, [])
 
   const handleSend = async (e) => {
     e.preventDefault()
-    if (!input.trim()) return
+    if (!input.trim() || !hasProvidedPhone) return
 
     const userMsg = input.trim()
     setInput('')
@@ -33,32 +48,62 @@ export default function AIChatbot() {
       const response = await swipeAISearch(userMsg)
       setMessages(prev => [...prev, { role: 'assistant', content: response }])
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error connecting to my brain. Please try again later!' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, our support team is currently busy. We will get back to you soon on your phone number!' }])
     } finally {
       setIsTyping(false)
     }
   }
 
+  const handleSetPhone = () => {
+    if (phoneInput.trim().length >= 10) {
+      setHasProvidedPhone(true)
+      setMessages(prev => [
+        ...prev, 
+        { role: 'user', content: phoneInput }, 
+        { role: 'assistant', content: 'Thanks! A representative will connect with you shortly. How can we help you in the meantime?' }
+      ])
+    }
+  }
+
   return (
     <>
-      {/* Floating Button */}
+      {/* Demo Modal */}
       <AnimatePresence>
-        {!isOpen && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
-          >
-            <button
-              onClick={() => setIsOpen(true)}
-              className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+        {showDemoModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => setShowDemoModal(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden p-8 text-center"
             >
-              <MessageCircle size={28} />
-            </button>
-          </motion.div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Need more help?</h2>
+              <p className="text-gray-600 mb-8">Book a FREE demo. Our team is here to assist. Contact us now.</p>
+              <div className="flex gap-4">
+                <Button variant="outline" fullWidth onClick={() => setShowDemoModal(false)}>Close</Button>
+                <Button fullWidth onClick={() => { setShowDemoModal(false); setIsOpen(true); }}>Contact Us</Button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
+
+      {/* Floating Button */}
+      <motion.div
+        className="fixed bottom-6 right-6 z-[55]"
+      >
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-14 h-14 bg-[#0052CC] hover:bg-blue-700 text-white rounded-full shadow-[0_8px_24px_rgba(0,82,204,0.4)] flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+        >
+          {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
+        </button>
+      </motion.div>
 
       {/* Chat Window */}
       <AnimatePresence>
@@ -68,75 +113,116 @@ export default function AIChatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-6 right-6 w-80 sm:w-[350px] h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50 border border-gray-100"
+            className="fixed bottom-[90px] right-6 w-[350px] h-[600px] max-h-[calc(100vh-120px)] bg-[#F5F5F5] rounded-[24px] shadow-2xl flex flex-col overflow-hidden z-50 border border-gray-100"
           >
             {/* Header */}
-            <div className="bg-blue-600 px-4 py-4 flex items-center justify-between text-white shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <Bot size={18} />
+            <div className="bg-[#0052CC] px-5 py-5 flex flex-col items-center text-white shrink-0 relative overflow-hidden" style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, rgba(255,255,255,0.05) 2px, transparent 0)', backgroundSize: '24px 24px' }}>
+              <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors">
+                <ChevronDown size={24} />
+              </button>
+              
+              <div className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-[12px] font-semibold px-3 py-1 rounded-full mb-4 transition-colors cursor-pointer">
+                Message Us
+              </div>
+              
+              <div className="flex flex-col items-center">
+                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center overflow-hidden border-[3px] border-[#0052CC] shadow-[0_0_0_2px_rgba(255,255,255,0.2)] mb-2">
+                  <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="Swipe" className="w-8 h-8 object-contain" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-sm">Swipe AI Support</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-blue-100 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                    We typically reply instantly
-                  </div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-[18px] leading-tight tracking-tight">Swipe</h3>
+                  <span className="w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-[#0052CC]"></span>
                 </div>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                <X size={20} />
-              </button>
             </div>
 
+            {/* Notification Bar */}
+            {!hasProvidedPhone && (
+              <div className="bg-[#FFF9C4] text-[#856404] px-4 py-2.5 text-[13px] font-medium flex items-center gap-2 border-b border-yellow-200 shrink-0">
+                <span>🔔</span> Please set your phone to continue.
+              </div>
+            )}
+
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col gap-4">
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+              <div className="text-center">
+                <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+              </div>
+              
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed shadow-sm ${
+                  {msg.role === 'assistant' && (
+                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center mr-2 shrink-0 mt-1 shadow-sm">
+                      <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="S" className="w-4 h-4 object-contain" />
+                    </div>
+                  )}
+                  <div className={`max-w-[80%] px-4 py-2.5 text-[14px] leading-relaxed shadow-sm ${
                     msg.role === 'user' 
-                      ? 'bg-blue-600 text-white rounded-br-sm' 
-                      : 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm'
+                      ? 'bg-[#0052CC] text-white rounded-2xl rounded-tr-sm' 
+                      : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm'
                   }`}>
                     {msg.content}
                   </div>
                 </div>
               ))}
-              
+
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm flex gap-1">
+                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center mr-2 shrink-0 mt-1 shadow-sm">
+                    <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="S" className="w-4 h-4 object-contain" />
+                  </div>
+                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex gap-1 items-center h-[40px]">
                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} className="pb-2" />
             </div>
 
-            {/* Input */}
-            <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 shrink-0">
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Compose your message..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-full pl-4 pr-12 py-2.5 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-gray-900"
-                />
-                <button
-                  type="submit"
-                  disabled={!input.trim() || isTyping}
-                  className="absolute right-1.5 p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
-                >
-                  <Send size={16} className="ml-0.5" />
-                </button>
+            {/* Input Area / Lead Capture Card */}
+            {!hasProvidedPhone ? (
+              <div className="bg-white rounded-t-2xl shadow-[0_-4px_24px_rgba(0,0,0,0.06)] p-5 pb-6 shrink-0 relative z-10 border-t border-gray-100">
+                <div className="text-[16px] font-bold text-gray-900 mb-4 leading-tight">What is your phone number?</div>
+                <div className="flex flex-col gap-3">
+                  <input 
+                    type="tel" 
+                    value={phoneInput}
+                    onChange={e => setPhoneInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSetPhone()}
+                    placeholder="Enter your phone number..." 
+                    className="w-full text-[14px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0052CC] focus:outline-none transition-shadow text-gray-800"
+                  />
+                  <button 
+                    onClick={handleSetPhone}
+                    disabled={phoneInput.trim().length < 10}
+                    className="w-full bg-[#0052CC] text-white text-[15px] font-semibold py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-[#0052CC] transition-colors shadow-sm"
+                  >
+                    Set my phone
+                  </button>
+                </div>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 shrink-0">
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Write a message..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-full pl-4 pr-12 py-3 text-[14px] focus:outline-none focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC] transition-all text-gray-900"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!input.trim() || isTyping}
+                    className="absolute right-1.5 p-2 bg-[#0052CC] hover:bg-blue-700 text-white rounded-full disabled:opacity-50 disabled:hover:bg-[#0052CC] transition-colors"
+                  >
+                    <Send size={16} className="ml-0.5" />
+                  </button>
+                </div>
+              </form>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

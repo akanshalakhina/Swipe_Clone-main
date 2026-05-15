@@ -1,22 +1,28 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ChevronDown, FileText, Truck, Sparkles, Store, Puzzle, ExternalLink, Code, Monitor, Apple, Smartphone } from 'lucide-react'
+import { Menu, X, ChevronDown, FileText, Truck, Sparkles, Store, Puzzle, ExternalLink, Code, Monitor, Apple, Smartphone, FileSignature, Receipt, Bell, Globe, PackageCheck, Building2, ScanLine, ShoppingBag, Database, CreditCard, PenTool } from 'lucide-react'
 import Button from '../ui/Button'
 import useUIStore from '../../store/uiStore'
 import useAuthStore from '../../store/authStore'
 
 const productLinks = [
-  { name: 'E-Invoicing', href: '/einvoices', icon: FileText, desc: 'Generate e-invoices instantly' },
-  { name: 'E-Way Bill', href: '/ewaybills', icon: Truck, desc: 'Create e-way bills on the go' },
-  { name: 'Swipe AI', href: '/swipeai', icon: Sparkles, desc: 'AI-powered billing assistant' },
-  { name: 'Online Store', href: '/onlinestore', icon: Store, desc: 'Sell products online' },
-  { name: 'Integrations', href: '/integrations', icon: Puzzle, desc: 'Connect with your tools' },
-  { name: 'API', href: '/api', icon: Code, desc: 'Integrate Swipe with your software' },
-  { name: 'Billing & POS software for PC', href: '/download', icon: Monitor, desc: 'Download Swipe for Windows' },
-  { name: 'Billing app for Mac', href: '/download', icon: Apple, desc: 'Download Swipe for macOS' },
-  { name: 'Billing app for iOS', href: '/download', icon: Apple, desc: 'Get the iOS App' },
-  { name: 'Billing app for Android', href: '/download', icon: Smartphone, desc: 'Get the Android App' },
+  { name: 'Invoices', href: '/invoices', icon: FileText, desc: 'Create them in 10 seconds' },
+  { name: 'Quotations', href: '/quotations', icon: FileSignature, desc: 'Send professional quotations' },
+  { name: 'Ewaybills', href: '/ewaybill', icon: Truck, desc: 'Generate in seconds' },
+  { name: 'Einvoices', href: '/einvoice', icon: Receipt, desc: 'One click E-invoices' },
+  { name: 'Auto Reminders', href: '/payment-reminders', icon: Bell, desc: 'Get paid faster with payment reminders' },
+  { name: 'Exports', href: '/exports', icon: Globe, desc: 'Go global with export invoices' },
+  { name: 'Online Store', href: '/onlinestore', icon: Store, desc: 'Create your online store' },
+  { name: 'Batch & Expiry', href: '/batch-expiry', icon: PackageCheck, desc: 'Manage inventory with batch numbers & expiry dates' },
+  { name: 'Branches & Warehouses', href: '/branches', icon: Building2, desc: 'Manage multiple locations easily' },
+  { name: 'Swipe AI', href: '/swipeai', icon: Sparkles, desc: 'Find answers instantly' },
+  { name: 'AI Document Scans', href: '/purchase-ai', icon: ScanLine, desc: 'Upload purchase invoices, POs and more' },
+  { name: 'Shopify', href: '/shopify', icon: ShoppingBag, desc: 'Connect your Shopify store' },
+  { name: 'APIs', href: '/apis', icon: Code, desc: 'Connect your business with Swipe' },
+  { name: 'Tally', href: '/integrations#tally', icon: Database, desc: 'Sync data between Swipe and Tally' },
+  { name: 'Razorpay', href: '/integrations#razorpay', icon: CreditCard, desc: 'Accept payments with Razorpay' },
+  { name: 'Digital Signature', href: '/digital-signature', icon: PenTool, desc: 'Digitally sign your invoices in seconds.' },
 ]
 
 const regions = [
@@ -119,9 +125,10 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.96 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 pt-1 w-72 z-[100]"
+                    className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[800px] z-[100]"
                   >
-                    <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 overflow-y-auto max-h-[80vh]">
+                    <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {productLinks.map((item) => (
                         <Link
                           key={item.name}
@@ -132,11 +139,12 @@ export default function Navbar() {
                             <item.icon size={18} className="text-primary" />
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-gray-900">{item.name}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">{item.desc}</div>
+                            <div className="text-[13px] font-bold text-gray-900 leading-tight">{item.name}</div>
+                            <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.desc}</div>
                           </div>
                         </Link>
                       ))}
+                      </div>
                     </div>
                   </motion.div>
                 )}

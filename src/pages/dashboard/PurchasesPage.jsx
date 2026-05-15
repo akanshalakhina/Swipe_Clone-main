@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Search, Package, Trash2, X, Eye, Filter, CheckCircle2, Settings, PlayCircle } from 'lucide-react'
 import { usePurchases } from '../../hooks/usePurchases'
 import { useProducts } from '../../hooks/useProducts'
 import Button from '../../components/ui/Button'
 import { toast } from 'react-hot-toast'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 function PurchaseIllustration() {
   return (
@@ -35,6 +36,21 @@ export default function PurchasesPage() {
   const [search, setSearch] = useState('')
   const { purchases, isLoading, isError, createPurchase, deletePurchase } = usePurchases()
   const { products } = useProducts()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/new')) {
+      setShowCreateModal(true)
+    }
+  }, [location.pathname])
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false)
+    if (location.pathname.endsWith('/new')) {
+      navigate('/app/purchases')
+    }
+  }
 
   const [newPurchase, setNewPurchase] = useState({
     vendorName: '',
@@ -86,7 +102,7 @@ export default function PurchasesPage() {
         purchaseNumber: `PUR-${Date.now().toString().slice(-6)}`
       })
       toast.success('Purchase recorded successfully!')
-      setShowCreateModal(false)
+      closeCreateModal()
       setNewPurchase({ vendorName: '', date: new Date().toISOString().split('T')[0], items: [], notes: '', status: 'Pending' })
     } catch (err) {
       toast.error('Failed to save purchase: ' + err.message)
@@ -249,7 +265,7 @@ export default function PurchasesPage() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
-              onClick={() => setShowCreateModal(false)}
+              onClick={closeCreateModal}
             />
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -259,7 +275,7 @@ export default function PurchasesPage() {
             >
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                 <h2 className="text-lg font-bold text-gray-900">Record Purchase</h2>
-                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <button onClick={closeCreateModal} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <X size={20} className="text-gray-400" />
                 </button>
               </div>
@@ -390,7 +406,7 @@ export default function PurchasesPage() {
               </div>
 
               <div className="px-6 py-4 border-t border-gray-100 flex gap-3 shrink-0">
-                <Button variant="secondary" fullWidth onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                <Button variant="secondary" fullWidth onClick={closeCreateModal}>Cancel</Button>
                 <Button fullWidth onClick={handleCreatePurchase}>Save Purchase</Button>
               </div>
             </motion.div>
