@@ -11,6 +11,7 @@ import useAuthStore from '../../store/authStore'
 import useBusinessStore from '../../store/businessStore'
 import { swipeAISearch } from '../../lib/gemini'
 import { toast } from 'react-hot-toast'
+import useUIStore from '../../store/uiStore'
 
 function NavGroup({ title, icon: Icon, children, isNew, path }) {
   const [isOpen, setIsOpen] = useState(true)
@@ -18,8 +19,8 @@ function NavGroup({ title, icon: Icon, children, isNew, path }) {
   if (!children) {
     const targetPath = path || `/app/${title.toLowerCase().replace(/[^a-z]/g, '')}`
     return (
-      <NavLink to={targetPath} className={({isActive}) => `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors hover:bg-gray-100/80 text-gray-700 ${isActive ? 'bg-blue-50/50 text-blue-700' : ''}`}>
-        <Icon size={16} className="text-gray-500" />
+      <NavLink to={targetPath} className={({isActive}) => `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors hover:bg-gray-100/80 text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 ${isActive ? 'bg-blue-50/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}`}>
+        <Icon size={16} className="text-gray-500 dark:text-gray-400" />
         <span className="flex-1">{title}</span>
         {isNew && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500 text-white">New</span>}
       </NavLink>
@@ -30,11 +31,11 @@ function NavGroup({ title, icon: Icon, children, isNew, path }) {
     <div className="mb-1">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-gray-800 hover:bg-gray-100/80 transition-colors cursor-pointer"
+        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-800 transition-colors cursor-pointer"
       >
-        <Icon size={16} className="text-gray-500" />
+        <Icon size={16} className="text-gray-500 dark:text-gray-400" />
         <span className="flex-1 text-left">{title}</span>
-        <ChevronDown size={14} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-gray-400 dark:text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence>
         {isOpen && (
@@ -58,7 +59,7 @@ function NavSubItem({ title, path }) {
   return (
     <NavLink 
       to={path}
-      className={({isActive}) => `text-[13px] py-1.5 px-2 rounded-md transition-colors ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
+      className={({isActive}) => `text-[13px] py-1.5 px-2 rounded-md transition-colors ${isActive ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'}`}
     >
       {title}
     </NavLink>
@@ -76,6 +77,7 @@ export default function DashboardLayout() {
   const [isSearching, setIsSearching] = useState(false)
   const { user, logout } = useAuthStore()
   const { activeBusiness } = useBusinessStore()
+  const { isDarkMode, toggleDarkMode } = useUIStore()
   const navigate = useNavigate()
 
   const handleSearch = async (e) => {
@@ -116,10 +118,9 @@ export default function DashboardLayout() {
         
         {/* Logo & Business Selector */}
         <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold italic shrink-0">
-            S
-          </div>
-          <div className="font-bold text-xl tracking-tight text-gray-900 shrink-0">swipe</div>
+          <Link to="/" className="flex items-center gap-2">
+            <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="Swipe Logo" className="h-8" />
+          </Link>
         </div>
 
         <div className="px-4 py-3 relative">
@@ -407,7 +408,7 @@ export default function DashboardLayout() {
 
                     <div className="py-1 border-b border-gray-100">
                       <Link to="/app/settings" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Settings size={16} className="text-gray-400"/> Settings</Link>
-                      <button className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Moon size={16} className="text-gray-400"/> Dark Mode</button>
+                      <button onClick={toggleDarkMode} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Moon size={16} className="text-gray-400"/> {isDarkMode ? 'Light Mode' : 'Dark Mode'}</button>
                       <button className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Zap size={16} className="text-gray-400"/> Keyboard Shortcuts</button>
                       <Link to="/app/help" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><HelpCircle size={16} className="text-gray-400"/> Help & Support</Link>
                     </div>

@@ -67,19 +67,23 @@ const useBusinessStore = create((set, get) => ({
 
     set({ loading: true, error: null })
     try {
-      // Mocked dashboard data based on Firestore for now
-      // In reality, this would aggregate data from subcollections (invoices, payments, etc)
-      
+      // Aggregate real data from Firestore subcollections
       const invoicesRef = collection(db, 'businesses', biz._id, 'invoices')
-      // Let's pretend we fetched the data
+      const invoicesSnap = await getDocs(invoicesRef)
+      const invoices = invoicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+      const totalInvoices = invoices.length
+      const monthlyRevenue = invoices.reduce((s, i) => s + Number(i.totalAmount || 0), 0)
+      const totalReceived = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + Number(i.totalAmount || 0), 0)
+      const totalPending = monthlyRevenue - totalReceived
       
       set({ 
         dashboard: {
-          totalInvoices: 156,
-          monthlyRevenue: 452300,
-          totalReceived: 374100,
-          totalPending: 78200,
-          recentInvoices: []
+          totalInvoices,
+          monthlyRevenue,
+          totalReceived,
+          totalPending,
+          recentInvoices: invoices.slice(0, 5)
         }, 
         loading: false 
       })

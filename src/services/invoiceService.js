@@ -1,5 +1,5 @@
 import { db } from '../lib/firebase'
-import { collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, where, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, where, writeBatch, increment } from 'firebase/firestore'
 
 export const invoiceService = {
   // Get all invoices for a business
@@ -20,17 +20,34 @@ export const invoiceService = {
     return { id: snapshot.id, ...snapshot.data() }
   },
 
-  // Create an invoice
+  // Create an invoice and update inventory
   createInvoice: async (businessId, invoiceData) => {
-    // Generate an invoice number if not provided (mocking auto-increment for now)
+    const batch = writeBatch(db)
+    
     const payload = {
       ...invoiceData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       invoiceNumber: invoiceData.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`
     }
-    const docRef = await addDoc(collection(db, `businesses/${businessId}/invoices`), payload)
-    return { id: docRef.id, ...payload }
+    
+    const newInvoiceRef = doc(collection(db, `businesses/${businessId}/invoices`))
+    batch.set(newInvoiceRef, payload)
+
+    // Decrement inventory for each item using FieldValue.increment
+    if (invoiceData.items && invoiceData.items.length > 0) {
+      for (const item of invoiceData.items) {
+        if (item.id) {
+          const productRef = doc(db, `businesses/${businessId}/products`, item.id)
+          batch.update(productRef, {
+            stock: increment(-Number(item.quantity || 0))
+          })
+        }
+      }
+    }
+
+    await batch.commit()
+    return { id: newInvoiceRef.id, ...payload }
   },
 
   // Update an invoice

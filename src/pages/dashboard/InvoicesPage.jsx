@@ -1,15 +1,13 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   PlayCircle, Settings, Plus, CheckCircle2, X, 
-  Search, Filter, MoreVertical, Eye, Download, Trash2,
-  Calendar, ArrowUpRight
+  Search, Filter, Eye, Trash2, Download, Printer, Share2, ChevronRight
 } from 'lucide-react'
 import { useInvoices } from '../../hooks/useInvoices'
 import { toast } from 'react-hot-toast'
 
-// ... InvoiceIllustration and SetupModal stay the same ...
 function InvoiceIllustration() {
   return (
     <svg width="400" height="250" viewBox="0 0 400 250" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto max-w-[400px] mb-8">
@@ -170,12 +168,167 @@ function SetupModal({ onClose }) {
   )
 }
 
+// Invoice Detail View Modal
+function InvoiceDetailModal({ invoice, onClose, onMarkPaid }) {
+  if (!invoice) return null
+
+  const items = invoice.items || []
+  const displayDate = invoice.createdAt?.toDate 
+    ? invoice.createdAt.toDate().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
+    : invoice.date || 'N/A'
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 no-print">
+      <motion.div 
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col printable-invoice"
+      >
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0 no-print">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Invoice INV-{invoice.invoiceNumber}</h2>
+            <p className="text-xs text-gray-500">{displayDate}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handlePrint} className="p-2 hover:bg-white rounded-lg text-gray-500 hover:text-gray-700 transition-colors cursor-pointer" title="Print">
+              <Printer size={18} />
+            </button>
+            <button className="p-2 hover:bg-white rounded-lg text-gray-500 hover:text-gray-700 transition-colors" title="Share">
+              <Share2 size={18} />
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors cursor-pointer">
+              <X size={20} className="text-gray-400" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Invoice Header */}
+          <div className="border border-blue-200 rounded-xl p-5 bg-blue-50/20">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="text-xs font-bold text-blue-600 tracking-wider mb-1">TAX INVOICE</div>
+                <div className="text-lg font-bold text-gray-900">INV-{invoice.invoiceNumber}</div>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                invoice.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+              }`}>
+                {invoice.status || 'Pending'}
+              </span>
+            </div>
+          </div>
+
+          {/* Customer & Dates */}
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Bill To</div>
+              <div className="text-sm font-bold text-gray-900">{invoice.customerName || 'N/A'}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Invoice Date</div>
+              <div className="text-sm text-gray-700">{displayDate}</div>
+              {invoice.dueDate && (
+                <>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 mt-2">Due Date</div>
+                  <div className="text-sm text-gray-700">{invoice.dueDate}</div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div className="rounded-xl border border-gray-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left">Item</th>
+                  <th className="px-4 py-3 text-center">Qty</th>
+                  <th className="px-4 py-3 text-right">Rate</th>
+                  <th className="px-4 py-3 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {items.map((item, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">{item.quantity}</td>
+                    <td className="px-4 py-3 text-right text-gray-600">₹{Number(item.price).toLocaleString('en-IN')}</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-900">₹{(Number(item.price) * Number(item.quantity)).toLocaleString('en-IN')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Totals */}
+          <div className="flex justify-end">
+            <div className="w-64 space-y-2">
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Subtotal</span>
+                <span>₹{Number(invoice.subtotal || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>GST (18%)</span>
+                <span>₹{Number(invoice.tax || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold text-gray-900 border-t border-gray-200 pt-2">
+                <span>Total</span>
+                <span>₹{Number(invoice.totalAmount || 0).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {invoice.notes && (
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="text-xs font-bold text-gray-400 uppercase mb-1">Notes</div>
+              <div className="text-sm text-gray-600">{invoice.notes}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Actions Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-between items-center shrink-0 bg-gray-50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Close
+          </button>
+          <div className="flex items-center gap-3">
+            {invoice.status !== 'Paid' && (
+              <button
+                onClick={() => onMarkPaid(invoice.id)}
+                className="px-5 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <CheckCircle2 size={16} /> Mark as Paid
+              </button>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 import Button from '../../components/ui/Button'
 
 export default function InvoicesPage() {
   const [showSetup, setShowSetup] = useState(false)
   const [search, setSearch] = useState('')
-  const { invoices, isLoading, deleteInvoice } = useInvoices()
+  const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const { invoices, isLoading, deleteInvoice, updateInvoice } = useInvoices()
   const navigate = useNavigate()
 
   const handleDelete = async (id) => {
@@ -189,10 +342,22 @@ export default function InvoicesPage() {
     }
   }
 
-  const filtered = invoices.filter(inv => 
-    inv.customerName?.toLowerCase().includes(search.toLowerCase()) || 
-    inv.invoiceNumber?.toLowerCase().includes(search.toLowerCase())
-  )
+  const handleMarkPaid = async (id) => {
+    try {
+      await updateInvoice({ id, data: { status: 'Paid' } })
+      toast.success('Invoice marked as paid!')
+      setSelectedInvoice(null)
+    } catch (err) {
+      toast.error('Failed to update invoice')
+    }
+  }
+
+  const filtered = invoices.filter(inv => {
+    const matchesSearch = inv.customerName?.toLowerCase().includes(search.toLowerCase()) || 
+      inv.invoiceNumber?.toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || (inv.status || 'Pending') === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   if (isLoading) return <div className="p-12 text-center">Loading invoices...</div>
 
@@ -202,7 +367,9 @@ export default function InvoicesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your sales and billing</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {invoices.length} invoices • ₹{invoices.reduce((s, i) => s + Number(i.totalAmount || 0), 0).toLocaleString('en-IN')} total
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button onClick={() => setShowSetup(true)} icon={Plus}>Create Invoice</Button>
@@ -229,7 +396,19 @@ export default function InvoicesPage() {
                 className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100" 
               />
             </div>
-            <button className="p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"><Filter size={18} /></button>
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
+              {['all', 'Pending', 'Paid'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                    statusFilter === s ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {s === 'all' ? 'All' : s}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -246,7 +425,7 @@ export default function InvoicesPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors group">
+                  <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => setSelectedInvoice(inv)}>
                     <td className="px-6 py-4">
                       <div className="font-bold text-gray-900">INV-{inv.invoiceNumber}</div>
                     </td>
@@ -254,10 +433,10 @@ export default function InvoicesPage() {
                       <div className="text-sm text-gray-900 font-medium">{inv.customerName}</div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {inv.date?.toDate ? inv.date.toDate().toLocaleDateString() : inv.date}
+                      {inv.createdAt?.toDate ? inv.createdAt.toDate().toLocaleDateString('en-IN') : inv.date}
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-gray-900 text-right">
-                      ₹{inv.totalAmount?.toLocaleString()}
+                      ₹{Number(inv.totalAmount || 0).toLocaleString('en-IN')}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${
@@ -266,9 +445,12 @@ export default function InvoicesPage() {
                         {inv.status || 'Pending'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-colors"><Eye size={16} /></button>
+                        <button 
+                          onClick={() => setSelectedInvoice(inv)}
+                          className="p-2 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-colors"
+                        ><Eye size={16} /></button>
                         <button onClick={() => handleDelete(inv.id)} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"><Trash2 size={16} /></button>
                       </div>
                     </td>
@@ -282,6 +464,16 @@ export default function InvoicesPage() {
 
       <AnimatePresence>
         {showSetup && <SetupModal onClose={() => setShowSetup(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedInvoice && (
+          <InvoiceDetailModal 
+            invoice={selectedInvoice} 
+            onClose={() => setSelectedInvoice(null)} 
+            onMarkPaid={handleMarkPaid}
+          />
+        )}
       </AnimatePresence>
     </div>
   )

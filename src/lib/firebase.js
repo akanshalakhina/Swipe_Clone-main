@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, RecaptchaVerifier } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -20,19 +20,35 @@ export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export const setupRecaptcha = (containerId) => {
+  // Clear any existing reCAPTCHA verifier
   if (window.recaptchaVerifier) {
-    window.recaptchaVerifier.clear();
+    try {
+      window.recaptchaVerifier.clear();
+    } catch (e) {
+      // ignore clear errors
+    }
+    window.recaptchaVerifier = null;
   }
-  
+
+  // Remove any leftover reCAPTCHA DOM elements
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.innerHTML = '';
+  }
+
   window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
     size: 'invisible',
     'callback': (response) => {
-      // reCAPTCHA solved
+      console.log('reCAPTCHA solved successfully');
     },
     'expired-callback': () => {
-      // Response expired
+      console.log('reCAPTCHA expired');
+      if (window.recaptchaVerifier) {
+        try { window.recaptchaVerifier.clear() } catch(e) {}
+        window.recaptchaVerifier = null;
+      }
     }
   });
-  
+
   return window.recaptchaVerifier;
 };

@@ -5,6 +5,7 @@ import LandingLayout from './components/layout/LandingLayout'
 import DashboardLayout from './components/layout/DashboardLayout'
 import SettingsLayout from './components/layout/SettingsLayout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import AIChatbot from './components/shared/AIChatbot'
 
 // Landing pages
 const HomePage = lazy(() => import('./pages/landing/HomePage'))
@@ -37,18 +38,21 @@ const ComingSoonPage = lazy(() => import('./pages/dashboard/ComingSoonPage'))
 
 import { useEffect } from 'react'
 import useAuthStore from './store/authStore'
+import useUIStore from './store/uiStore'
 
 export default function App() {
   const initAuthListener = useAuthStore(s => s.initAuthListener)
+  const initDarkMode = useUIStore(s => s.initDarkMode)
 
   useEffect(() => {
+    initDarkMode()
     const unsubscribe = initAuthListener()
     return () => {
       if (unsubscribe && typeof unsubscribe === 'function') {
         unsubscribe()
       }
     }
-  }, [initAuthListener])
+  }, [initAuthListener, initDarkMode])
 
   return (
     <Suspense fallback={<Loader />}>
@@ -139,6 +143,7 @@ export default function App() {
           }
         />
       </Routes>
+      <AIChatbot />
     </Suspense>
   )
 }

@@ -46,13 +46,13 @@ const useAuthStore = create((set, get) => ({
   },
 
   // EMERGENCY BYPASS FOR DEV
-  devLogin: async () => {
+  devLogin: async (phoneNumber) => {
     set({ loading: true })
     const demoUid = 'demo_user_swipe'
     const userData = {
       uid: demoUid,
       email: 'demo@getswipe.in',
-      phone: '+919560760057',
+      phone: phoneNumber ? `+91${phoneNumber}` : '+919560760057',
       name: 'Demo Business Owner',
       businesses: [],
       activeBusiness: null
@@ -88,7 +88,27 @@ const useAuthStore = create((set, get) => ({
       set({ confirmationResult, loading: false })
       return true
     } catch (err) {
-      set({ loading: false, error: err.message })
+      console.error('OTP Send Error:', err.code, err.message)
+      
+      // Clean up recaptcha on error so user can retry
+      if (window.recaptchaVerifier) {
+        try { window.recaptchaVerifier.clear() } catch(e) {}
+        window.recaptchaVerifier = null
+      }
+
+      // User-friendly error messages
+      let errorMsg = err.message
+      if (err.code === 'auth/invalid-app-credential') {
+        errorMsg = 'Phone auth setup issue. Please ensure localhost is added to Firebase authorized domains and Phone sign-in is enabled in Firebase Console.'
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMsg = 'Too many attempts. Please try again after some time.'
+      } else if (err.code === 'auth/invalid-phone-number') {
+        errorMsg = 'Invalid phone number. Please check and try again.'
+      } else if (err.code === 'auth/quota-exceeded') {
+        errorMsg = 'SMS quota exceeded. Please try again later.'
+      }
+
+      set({ loading: false, error: errorMsg })
       throw err
     }
   },

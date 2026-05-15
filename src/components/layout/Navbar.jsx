@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ChevronDown, FileText, Truck, Sparkles, Store, Puzzle, ExternalLink } from 'lucide-react'
+import { Menu, X, ChevronDown, FileText, Truck, Sparkles, Store, Puzzle, ExternalLink, Code, Monitor, Apple, Smartphone } from 'lucide-react'
 import Button from '../ui/Button'
 import useUIStore from '../../store/uiStore'
 import useAuthStore from '../../store/authStore'
 
 const productLinks = [
-  { name: 'E-Invoices', href: '/einvoices', icon: FileText, desc: 'Generate e-invoices instantly' },
-  { name: 'E-Way Bills', href: '/ewaybills', icon: Truck, desc: 'Create e-way bills on the go' },
+  { name: 'E-Invoicing', href: '/einvoices', icon: FileText, desc: 'Generate e-invoices instantly' },
+  { name: 'E-Way Bill', href: '/ewaybills', icon: Truck, desc: 'Create e-way bills on the go' },
   { name: 'Swipe AI', href: '/swipeai', icon: Sparkles, desc: 'AI-powered billing assistant' },
   { name: 'Online Store', href: '/onlinestore', icon: Store, desc: 'Sell products online' },
   { name: 'Integrations', href: '/integrations', icon: Puzzle, desc: 'Connect with your tools' },
+  { name: 'API', href: '/api', icon: Code, desc: 'Integrate Swipe with your software' },
+  { name: 'Billing & POS software for PC', href: '/download', icon: Monitor, desc: 'Download Swipe for Windows' },
+  { name: 'Billing app for Mac', href: '/download', icon: Apple, desc: 'Download Swipe for macOS' },
+  { name: 'Billing app for iOS', href: '/download', icon: Apple, desc: 'Get the iOS App' },
+  { name: 'Billing app for Android', href: '/download', icon: Smartphone, desc: 'Get the Android App' },
 ]
 
 const regions = [
@@ -55,10 +60,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center gap-2 lg:gap-4 shrink-0">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">S</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900 hidden sm:block">Swipe</span>
+              <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="Swipe Logo" className="w-8 h-8 sm:w-auto sm:h-8" />
             </Link>
 
             {/* Region Dropdown */}
@@ -119,7 +121,7 @@ export default function Navbar() {
                     transition={{ duration: 0.15 }}
                     className="absolute top-full left-0 pt-1 w-72 z-[100]"
                   >
-                    <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 overflow-y-auto max-h-[80vh]">
                       {productLinks.map((item) => (
                         <Link
                           key={item.name}
@@ -141,9 +143,9 @@ export default function Navbar() {
               </AnimatePresence>
             </div>
 
-            <Link to="/#features" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-50 transition-colors">
+            <a href="/#features" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-50 transition-colors">
               Features
-            </Link>
+            </a>
             <Link to="/pricing" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-50 transition-colors">
               Pricing
             </Link>
@@ -222,9 +224,9 @@ export default function Navbar() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <Link to="/#features" className="block px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50">
+              <a href="/#features" className="block px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50">
                 Features
-              </Link>
+              </a>
               <Link to="/pricing" className="block px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50">
                 Pricing
               </Link>

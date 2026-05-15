@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { 
   TrendingUp, TrendingDown, Users, Package, 
@@ -7,19 +8,14 @@ import {
 import { Link } from 'react-router-dom'
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, BarChart, Bar 
+  Tooltip, ResponsiveContainer
 } from 'recharts'
 import useAuthStore from '../../store/authStore'
-
-const data = [
-  { name: 'Mon', sales: 4000, expenses: 2400 },
-  { name: 'Tue', sales: 3000, expenses: 1398 },
-  { name: 'Wed', sales: 2000, expenses: 9800 },
-  { name: 'Thu', sales: 2780, expenses: 3908 },
-  { name: 'Fri', sales: 1890, expenses: 4800 },
-  { name: 'Sat', sales: 2390, expenses: 3800 },
-  { name: 'Sun', sales: 3490, expenses: 4300 },
-]
+import useBusinessStore from '../../store/businessStore'
+import { useInvoices } from '../../hooks/useInvoices'
+import { useCustomers } from '../../hooks/useCustomers'
+import { useProducts } from '../../hooks/useProducts'
+import { usePayments } from '../../hooks/usePayments'
 
 const StatCard = ({ title, value, change, icon: Icon, color }) => (
   <motion.div 
@@ -30,18 +26,79 @@ const StatCard = ({ title, value, change, icon: Icon, color }) => (
       <div className={`p-3 rounded-xl ${color}`}>
         <Icon size={24} className="text-white" />
       </div>
-      <div className={`flex items-center gap-1 text-sm font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-        {change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-        {Math.abs(change)}%
-      </div>
+      {change !== null && (
+        <div className={`flex items-center gap-1 text-sm font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+          {Math.abs(change)}%
+        </div>
+      )}
     </div>
     <div className="text-sm text-gray-500 font-medium">{title}</div>
     <div className="text-2xl font-bold text-gray-900 mt-1">{value}</div>
   </motion.div>
 )
 
+// Group invoices by day of the week for chart
+function buildWeeklyChartData(invoices, payments) {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const now = new Date()
+  const data = days.map(name => ({ name, sales: 0, expenses: 0 }))
+
+  invoices.forEach(inv => {
+    let d = null
+    if (inv.createdAt?.toDate) d = inv.createdAt.toDate()
+    else if (inv.createdAt) d = new Date(inv.createdAt)
+    if (!d) return
+    const dayDiff = Math.floor((now - d) / (1000 * 60 * 60 * 24))
+    if (dayDiff < 7) {
+      const dayIdx = (d.getDay() + 6) % 7 // Mon=0
+      data[dayIdx].sales += Number(inv.totalAmount || 0)
+    }
+  })
+
+  payments.forEach(p => {
+    let d = null
+    if (p.createdAt?.toDate) d = p.createdAt.toDate()
+    else if (p.createdAt) d = new Date(p.createdAt)
+    if (!d) return
+    const dayDiff = Math.floor((now - d) / (1000 * 60 * 60 * 24))
+    if (dayDiff < 7 && p.type === 'made') {
+      const dayIdx = (d.getDay() + 6) % 7
+      data[dayIdx].expenses += Number(p.amount || 0)
+    }
+  })
+
+  return data
+}
+
 export default function DashboardPage() {
   const { user } = useAuthStore()
+  const { activeBusiness, fetchBusinesses } = useBusinessStore()
+  const { invoices, isLoading: invLoading } = useInvoices()
+  const { customers } = useCustomers()
+  const { products } = useProducts()
+  const { payments } = usePayments()
+
+  useEffect(() => {
+    if (!activeBusiness) fetchBusinesses()
+  }, [activeBusiness, fetchBusinesses])
+
+  const stats = useMemo(() => {
+    const totalSales = invoices.reduce((s, i) => s + Number(i.totalAmount || 0), 0)
+    const totalExpenses = payments.filter(p => p.type === 'made').reduce((s, p) => s + Number(p.amount || 0), 0)
+    return { totalSales, totalExpenses }
+  }, [invoices, payments])
+
+  const chartData = useMemo(() => buildWeeklyChartData(invoices, payments), [invoices, payments])
+
+  const recentInvoices = useMemo(() => {
+    return invoices.slice(0, 5).map(inv => ({
+      ...inv,
+      displayDate: inv.createdAt?.toDate 
+        ? inv.createdAt.toDate().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })
+        : inv.date || 'N/A'
+    }))
+  }, [invoices])
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
@@ -54,7 +111,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
             <Calendar size={18} className="text-gray-400" />
-            Last 30 Days
+            Last 7 Days
           </button>
           <Link to="/app/invoices/new">
             <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
@@ -67,10 +124,34 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Sales" value="₹4,28,500" change={12.5} icon={DollarSign} color="bg-blue-600" />
-        <StatCard title="Total Expenses" value="₹1,12,000" change={-2.4} icon={TrendingDown} color="bg-rose-500" />
-        <StatCard title="Active Customers" value="124" change={8.1} icon={Users} color="bg-amber-500" />
-        <StatCard title="Inventory Items" value="48" change={0} icon={Package} color="bg-indigo-600" />
+        <StatCard 
+          title="Total Sales" 
+          value={`₹${stats.totalSales.toLocaleString('en-IN')}`} 
+          change={invoices.length > 0 ? 12.5 : null} 
+          icon={DollarSign} 
+          color="bg-blue-600" 
+        />
+        <StatCard 
+          title="Total Expenses" 
+          value={`₹${stats.totalExpenses.toLocaleString('en-IN')}`} 
+          change={stats.totalExpenses > 0 ? -2.4 : null} 
+          icon={TrendingDown} 
+          color="bg-rose-500" 
+        />
+        <StatCard 
+          title="Active Customers" 
+          value={customers.length.toString()} 
+          change={customers.length > 0 ? 8.1 : null} 
+          icon={Users} 
+          color="bg-amber-500" 
+        />
+        <StatCard 
+          title="Inventory Items" 
+          value={products.length.toString()} 
+          change={null} 
+          icon={Package} 
+          color="bg-indigo-600" 
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -94,7 +175,7 @@ export default function DashboardPage() {
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#2563EB" stopOpacity={0.1}/>
@@ -106,6 +187,7 @@ export default function DashboardPage() {
                 <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9CA3AF'}} tickFormatter={(v) => `₹${v/1000}k`} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value) => [`₹${value.toLocaleString('en-IN')}`, undefined]}
                 />
                 <Area type="monotone" dataKey="sales" stroke="#2563EB" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
                 <Area type="monotone" dataKey="expenses" stroke="#BFDBFE" strokeWidth={2} fill="transparent" />
@@ -158,6 +240,7 @@ export default function DashboardPage() {
             <thead className="bg-gray-50">
               <tr className="text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 <th className="px-6 py-3">Customer</th>
+                <th className="px-6 py-3">Invoice</th>
                 <th className="px-6 py-3">Date</th>
                 <th className="px-6 py-3">Amount</th>
                 <th className="px-6 py-3">Status</th>
@@ -165,31 +248,36 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {[
-                { customer: 'Acme Corp', date: 'Oct 12, 2023', amount: '₹12,450', status: 'Paid' },
-                { customer: 'Global Solutions', date: 'Oct 11, 2023', amount: '₹8,900', status: 'Pending' },
-                { customer: 'Rajesh Kumar', date: 'Oct 10, 2023', amount: '₹2,100', status: 'Paid' },
-              ].map((inv, i) => (
-                <tr key={i} className="hover:bg-gray-50 transition-colors">
+              {recentInvoices.length > 0 ? recentInvoices.map((inv, i) => (
+                <tr key={inv.id || i} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{inv.customer}</div>
+                    <div className="font-medium text-gray-900">{inv.customerName || 'Unnamed'}</div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{inv.date}</td>
-                  <td className="px-6 py-4 text-sm font-bold text-gray-900">{inv.amount}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 font-medium">INV-{inv.invoiceNumber}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{inv.displayDate}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{Number(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
                       inv.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
                     }`}>
-                      {inv.status}
+                      {inv.status || 'Pending'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-blue-600 hover:text-blue-700 p-1">
+                    <Link to="/app/invoices" className="text-blue-600 hover:text-blue-700 p-1">
                       <ArrowUpRight size={18} />
-                    </button>
+                    </Link>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
+                    <FileText size={40} className="mx-auto mb-3 opacity-30" />
+                    <p className="text-sm font-medium">No invoices yet</p>
+                    <Link to="/app/invoices/new" className="text-blue-600 text-sm font-semibold mt-1 inline-block">Create your first invoice →</Link>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

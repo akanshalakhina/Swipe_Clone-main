@@ -91,7 +91,7 @@ export default function DownloadPage() {
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors duration-500 mb-2 mt-auto group-hover:mt-0">Windows</h3>
               <p className="text-gray-500 group-hover:text-gray-300 transition-colors duration-500 mb-6 text-sm">Requires Windows 10 or newer.</p>
               
-              <button className="w-full mt-auto h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors border border-gray-700">
+              <a href="#" className="w-full mt-auto h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors border border-gray-700">
                 <div className="flex gap-0.5">
                   <div className="w-2 h-2 bg-[#F25022]"></div><div className="w-2 h-2 bg-[#7FBA00]"></div>
                 </div>
@@ -102,7 +102,7 @@ export default function DownloadPage() {
                   <div className="text-[9px] text-gray-300">Get it from</div>
                   <div className="text-sm font-bold">Microsoft</div>
                 </div>
-              </button>
+              </a>
             </div>
           </motion.div>
 
@@ -119,13 +119,13 @@ export default function DownloadPage() {
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors duration-500 mb-2 mt-auto group-hover:mt-0">macOS</h3>
               <p className="text-gray-500 group-hover:text-gray-300 transition-colors duration-500 mb-6 text-sm">Requires macOS 12 or newer.</p>
               
-              <button className="w-full mt-auto h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors border border-gray-700">
+              <a href="https://apps.apple.com/in/app/swipe-invoicing-and-payments/id6451307318" target="_blank" rel="noopener noreferrer" className="w-full mt-auto h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors border border-gray-700">
                 <Apple size={20} />
                 <div className="text-left leading-none">
                   <div className="text-[9px] text-gray-300">Download on the</div>
                   <div className="text-sm font-bold">App Store</div>
                 </div>
-              </button>
+              </a>
             </div>
           </motion.div>
 
@@ -142,7 +142,7 @@ export default function DownloadPage() {
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors duration-500 mb-2 mt-auto group-hover:mt-0">Android</h3>
               <p className="text-gray-500 group-hover:text-gray-300 transition-colors duration-500 mb-6 text-sm">Android 7 and newer</p>
               
-              <button className="w-full mt-auto h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors border border-gray-700">
+              <a href="https://play.google.com/store/apps/details?id=in.swipe.app" target="_blank" rel="noopener noreferrer" className="w-full mt-auto h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors border border-gray-700">
                 <img src="https://getswipe.azureedge.net/getswipe/images/android.webp" className="w-5 h-5 opacity-0 absolute" /> {/* spacer */}
                 <div className="flex gap-1 items-center">
                   <svg className="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.79c.44.41 1.09.44 1.64.15L21.6 13.51c.55-.29.88-.82.88-1.41 0-.59-.33-1.12-.88-1.41L4.82.26C4.27-.03 3.62 0 3.18.41A1.5 1.5 0 0 0 2.7 1.5v21c0 .45.17.87.48 1.17zM14.54 12l-4.89 5.04V6.96L14.54 12z"/></svg>
@@ -151,7 +151,7 @@ export default function DownloadPage() {
                     <div className="text-sm font-bold">Google Play</div>
                   </div>
                 </div>
-              </button>
+              </a>
             </div>
           </motion.div>
 
@@ -168,13 +168,13 @@ export default function DownloadPage() {
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors duration-500 mb-2 mt-auto group-hover:mt-0">iOS</h3>
               <p className="text-gray-500 group-hover:text-gray-300 transition-colors duration-500 mb-6 text-sm">Requires iOS 15 or newer.</p>
               
-              <button className="w-full mt-auto h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors border border-gray-700">
+              <a href="https://apps.apple.com/in/app/swipe-invoicing-and-payments/id6451307318" target="_blank" rel="noopener noreferrer" className="w-full mt-auto h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors border border-gray-700">
                 <Apple size={20} />
                 <div className="text-left leading-none">
                   <div className="text-[9px] text-gray-300">Download on the</div>
                   <div className="text-sm font-bold">App Store</div>
                 </div>
-              </button>
+              </a>
             </div>
           </motion.div>
         </div>
