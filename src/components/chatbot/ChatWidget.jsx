@@ -57,8 +57,8 @@ export default function ChatWidget() {
 
   return (
     <>
-      <FloatingButton 
-        isOpen={isOpen} 
+      <FloatingButton
+        isOpen={isOpen}
         onClick={() => { setIsOpen(!isOpen); setShowTooltip(false); setHasAutomaticallyOpened(true); }}
         showTooltip={showTooltip}
         onTooltipClose={() => { setShowTooltip(false); setHasAutomaticallyOpened(true); }}
@@ -88,7 +88,7 @@ export default function ChatWidget() {
               </div>
 
               <div className="flex flex-col items-center mt-2">
-                <button 
+                <button
                   className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 text-white text-[12px] font-semibold px-4 py-1.5 rounded-full mb-5 transition-all flex items-center gap-2"
                 >
                   <MessageSquare size={14} />
