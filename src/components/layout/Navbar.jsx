@@ -6,24 +6,30 @@ import Button from '../ui/Button'
 import useUIStore from '../../store/uiStore'
 import useAuthStore from '../../store/authStore'
 
-const productLinks = [
-  { name: 'Invoices', href: '/invoices', icon: FileText, desc: 'Create them in 10 seconds' },
-  { name: 'Quotations', href: '/quotations', icon: FileSignature, desc: 'Send professional quotations' },
-  { name: 'Ewaybills', href: '/ewaybill', icon: Truck, desc: 'Generate in seconds' },
-  { name: 'Einvoices', href: '/einvoice', icon: Receipt, desc: 'One click E-invoices' },
-  { name: 'Auto Reminders', href: '/payment-reminders', icon: Bell, desc: 'Get paid faster with payment reminders' },
-  { name: 'Exports', href: '/exports', icon: Globe, desc: 'Go global with export invoices' },
-  { name: 'Online Store', href: '/onlinestore', icon: Store, desc: 'Create your online store' },
-  { name: 'Batch & Expiry', href: '/batch-expiry', icon: PackageCheck, desc: 'Manage inventory with batch numbers & expiry dates' },
-  { name: 'Branches & Warehouses', href: '/branches', icon: Building2, desc: 'Manage multiple locations easily' },
-  { name: 'Swipe AI', href: '/swipeai', icon: Sparkles, desc: 'Find answers instantly' },
-  { name: 'AI Document Scans', href: '/purchase-ai', icon: ScanLine, desc: 'Upload purchase invoices, POs and more' },
-  { name: 'Shopify', href: '/shopify', icon: ShoppingBag, desc: 'Connect your Shopify store' },
-  { name: 'APIs', href: '/apis', icon: Code, desc: 'Connect your business with Swipe' },
-  { name: 'Tally', href: '/integrations#tally', icon: Database, desc: 'Sync data between Swipe and Tally' },
-  { name: 'Razorpay', href: '/integrations#razorpay', icon: CreditCard, desc: 'Accept payments with Razorpay' },
-  { name: 'Digital Signature', href: '/digital-signature', icon: PenTool, desc: 'Digitally sign your invoices in seconds.' },
-]
+const productLinks = {
+  'Features': [
+    { name: 'Invoices', href: '/invoices', icon: FileText, desc: 'Create them in 10 seconds' },
+    { name: 'Quotations', href: '/quotations', icon: FileSignature, desc: 'Send professional quotations' },
+    { name: 'Ewaybills', href: '/ewaybill', icon: Truck, desc: 'Generate in seconds' },
+    { name: 'Einvoices', href: '/einvoice', icon: Receipt, desc: 'One click E-invoices' },
+    { name: 'Auto Reminders', href: '/payment-reminders', icon: Bell, desc: 'Get paid faster with payment reminders' },
+    { name: 'Exports', href: '/exports', icon: Globe, desc: 'Go global with export invoices' },
+    { name: 'Online Store', href: '/onlinestore', icon: Store, desc: 'Create your online store' },
+    { name: 'Batch & Expiry', href: '/batch-expiry', icon: PackageCheck, desc: 'Manage inventory with batch numbers & expiry dates' },
+    { name: 'Branches & Warehouses', href: '/branches', icon: Building2, desc: 'Manage multiple locations easily' },
+  ],
+  'Swipe AI': [
+    { name: 'Swipe AI', href: '/swipeai', icon: Sparkles, desc: 'Find answers instantly' },
+    { name: 'AI Document Scans', href: '/purchase-ai', icon: ScanLine, desc: 'Upload purchase invoices, POs and more' },
+  ],
+  'Integrations and more': [
+    { name: 'Shopify', href: '/shopify', icon: ShoppingBag, desc: 'Connect your Shopify store' },
+    { name: 'APIs', href: '/apis', icon: Code, desc: 'Connect your business with Swipe' },
+    { name: 'Tally', href: '/integrations#tally', icon: Database, desc: 'Sync data between Swipe and Tally' },
+    { name: 'Razorpay', href: '/integrations#razorpay', icon: CreditCard, desc: 'Accept payments with Razorpay' },
+    { name: 'Digital Signature', href: '/digital-signature', icon: PenTool, desc: 'Digitally sign your invoices in seconds.' },
+  ]
+}
 
 const regions = [
   { id: 'IN', name: 'India', flag: 'https://getswipe.azureedge.net/getswipe/images/flags/in.webp' },
@@ -125,26 +131,33 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.96 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[800px] z-[100]"
+                    className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[850px] z-[100]"
                   >
-                    <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {productLinks.map((item) => (
-                        <Link
-                          key={item.name}
-                          to={item.href}
-                          className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group"
-                        >
-                          <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center shrink-0 group-hover:bg-primary-light transition-colors">
-                            <item.icon size={18} className="text-primary" />
+                    <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 flex gap-6">
+                      {Object.entries(productLinks).map(([category, items]) => (
+                        <div key={category} className="flex-1">
+                          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">
+                            {category}
+                          </h4>
+                          <div className="space-y-1">
+                            {items.map((item) => (
+                              <Link
+                                key={item.name}
+                                to={item.href}
+                                className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors group"
+                              >
+                                <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center shrink-0 group-hover:bg-primary-light transition-colors mt-0.5">
+                                  <item.icon size={16} className="text-primary" />
+                                </div>
+                                <div>
+                                  <div className="text-[13px] font-bold text-gray-900 leading-tight">{item.name}</div>
+                                  <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.desc}</div>
+                                </div>
+                              </Link>
+                            ))}
                           </div>
-                          <div>
-                            <div className="text-[13px] font-bold text-gray-900 leading-tight">{item.name}</div>
-                            <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">{item.desc}</div>
-                          </div>
-                        </Link>
+                        </div>
                       ))}
-                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -217,17 +230,24 @@ export default function Navbar() {
                     initial={{ height: 0 }}
                     animate={{ height: 'auto' }}
                     exit={{ height: 0 }}
-                    className="overflow-hidden pl-4"
+                    className="overflow-hidden pl-2"
                   >
-                    {productLinks.map((item) => (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-50"
-                      >
-                        <item.icon size={16} className="text-primary" />
-                        {item.name}
-                      </Link>
+                    {Object.entries(productLinks).map(([category, items]) => (
+                      <div key={category} className="mb-4 last:mb-0">
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-3">{category}</div>
+                        {items.map((item) => (
+                          <Link
+                            key={item.name}
+                            to={item.href}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-50"
+                          >
+                            <div className="w-7 h-7 rounded bg-primary-50 flex items-center justify-center shrink-0">
+                              <item.icon size={14} className="text-primary" />
+                            </div>
+                            <span className="font-medium text-gray-700">{item.name}</span>
+                          </Link>
+                        ))}
+                      </div>
                     ))}
                   </motion.div>
                 )}

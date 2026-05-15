@@ -5,7 +5,7 @@ import LandingLayout from './components/layout/LandingLayout'
 import DashboardLayout from './components/layout/DashboardLayout'
 import SettingsLayout from './components/layout/SettingsLayout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
-import AIChatbot from './components/shared/AIChatbot'
+import ChatWidget from './components/chatbot/ChatWidget'
 
 // Landing pages
 const HomePage = lazy(() => import('./pages/landing/HomePage'))
@@ -158,7 +158,7 @@ export default function App() {
           }
         />
       </Routes>
-      <AIChatbot />
+      <ChatWidget />
     </Suspense>
   )
 }
