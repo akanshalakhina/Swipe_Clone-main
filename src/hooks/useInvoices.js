@@ -13,21 +13,30 @@ export const useInvoices = () => {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data) => invoiceService.createInvoice(activeBusiness._id, data),
+    mutationFn: (data) => {
+      if (!activeBusiness?._id) throw new Error("No active business found.")
+      return invoiceService.createInvoice(activeBusiness._id, data)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices', activeBusiness?._id] })
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => invoiceService.updateInvoice(activeBusiness._id, id, data),
+    mutationFn: ({ id, data }) => {
+      if (!activeBusiness?._id) throw new Error("No active business found.")
+      return invoiceService.updateInvoice(activeBusiness._id, id, data)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices', activeBusiness?._id] })
     },
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => invoiceService.deleteInvoice(activeBusiness._id, id),
+    mutationFn: (id) => {
+      if (!activeBusiness?._id) throw new Error("No active business found.")
+      return invoiceService.deleteInvoice(activeBusiness._id, id)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices', activeBusiness?._id] })
     },

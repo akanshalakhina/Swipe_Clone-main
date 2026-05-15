@@ -13,21 +13,30 @@ export const useCustomers = () => {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data) => customerService.createCustomer(activeBusiness._id, data),
+    mutationFn: (data) => {
+      if (!activeBusiness?._id) throw new Error("No active business found.")
+      return customerService.createCustomer(activeBusiness._id, data)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers', activeBusiness?._id] })
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => customerService.updateCustomer(activeBusiness._id, id, data),
+    mutationFn: ({ id, data }) => {
+      if (!activeBusiness?._id) throw new Error("No active business found.")
+      return customerService.updateCustomer(activeBusiness._id, id, data)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers', activeBusiness?._id] })
     },
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => customerService.deleteCustomer(activeBusiness._id, id),
+    mutationFn: (id) => {
+      if (!activeBusiness?._id) throw new Error("No active business found.")
+      return customerService.deleteCustomer(activeBusiness._id, id)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers', activeBusiness?._id] })
     },

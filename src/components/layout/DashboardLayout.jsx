@@ -5,7 +5,7 @@ import {
   FileText, Package, Users, CreditCard,
   BarChart3, Settings, LogOut, ChevronDown, Menu, X,
   Plus, Bell, Search, Zap, Volume2, HelpCircle,
-  Smartphone, MonitorSmartphone, Receipt, Truck, Box, PieChart
+  Smartphone, MonitorSmartphone, Receipt, Truck, Box, PieChart, Moon, MessageCircle, PlayCircle, PhoneCall, Link as LinkIcon
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import useBusinessStore from '../../store/businessStore'
@@ -68,6 +68,10 @@ function NavSubItem({ title, path }) {
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [shortcutsMenuOpen, setShortcutsMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [announcementsOpen, setAnnouncementsOpen] = useState(false)
+  const [companyMenuOpen, setCompanyMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const { user, logout } = useAuthStore()
@@ -118,8 +122,11 @@ export default function DashboardLayout() {
           <div className="font-bold text-xl tracking-tight text-gray-900 shrink-0">swipe</div>
         </div>
 
-        <div className="px-4 py-3">
-          <button className="w-full flex items-center gap-3 hover:bg-gray-100 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer text-left">
+        <div className="px-4 py-3 relative">
+          <button 
+            onClick={() => setCompanyMenuOpen(!companyMenuOpen)}
+            className="w-full flex items-center gap-3 hover:bg-gray-100 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer text-left"
+          >
             <div className="w-8 h-8 rounded-full bg-orange-200 text-orange-800 flex items-center justify-center text-xs font-bold shrink-0">
               {activeBusiness?.name?.[0] || 'Y'}B
             </div>
@@ -129,7 +136,36 @@ export default function DashboardLayout() {
               </div>
               <div className="text-[11px] text-gray-500 font-medium">+ Add Another Company</div>
             </div>
+            <ChevronDown size={14} className="text-gray-400" />
           </button>
+
+          <AnimatePresence>
+            {companyMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="absolute top-full left-4 right-4 mt-1 bg-white border border-gray-100 rounded-xl shadow-lg z-50 overflow-hidden"
+              >
+                <div className="p-2">
+                  <div className="text-[11px] font-bold text-gray-500 px-2 pb-1 uppercase">Switch Business</div>
+                  <button className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg text-left">
+                    <div className="w-6 h-6 rounded-full bg-orange-200 text-orange-800 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {activeBusiness?.name?.[0] || 'Y'}B
+                    </div>
+                    <span className="text-[13px] font-semibold text-gray-900 truncate">{activeBusiness?.name || 'YOUR BUSINESS NAME'}</span>
+                  </button>
+                  <div className="border-t border-gray-100 my-1"></div>
+                  <Link to="/app/settings/company" className="w-full flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg text-left text-[13px] font-medium text-gray-700">
+                    <Settings size={14} /> Manage Companies
+                  </Link>
+                  <button className="w-full flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg text-left text-[13px] font-medium text-blue-600">
+                    <Plus size={14} /> Create New Company
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Navigation */}
@@ -235,9 +271,105 @@ export default function DashboardLayout() {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            <button className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"><Zap size={18} /></button>
-            <button className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"><Bell size={18} /></button>
-            <button className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"><Volume2 size={18} /></button>
+            <div className="relative">
+              <button 
+                onClick={() => setShortcutsMenuOpen(!shortcutsMenuOpen)}
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <Zap size={18} />
+              </button>
+              <AnimatePresence>
+                {shortcutsMenuOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.1 }}
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.1)] border border-gray-100 py-2 z-50"
+                  >
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <div className="text-[13px] font-bold text-gray-900">Shortcuts</div>
+                    </div>
+                    <div className="py-1">
+                      <Link to="/app/invoices/new" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium"><Plus size={14}/> Create Invoice</Link>
+                      <Link to="/app/purchases/new" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium"><Plus size={14}/> Add Purchase</Link>
+                      <Link to="/app/customers/new" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium"><Users size={14}/> Add Customer</Link>
+                      <Link to="/app/inventory/new" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium"><Box size={14}/> Add Product</Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="relative">
+              <button 
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <Bell size={18} />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              </button>
+              <AnimatePresence>
+                {notificationsOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.1 }}
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col z-50 max-h-96"
+                  >
+                    <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                      <div className="text-[14px] font-bold text-gray-900">Notifications</div>
+                      <button className="text-[12px] text-blue-600 font-medium hover:underline">Mark all as read</button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center text-center gap-2">
+                      <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 mb-2">
+                        <Bell size={24} />
+                      </div>
+                      <p className="text-[14px] font-semibold text-gray-800">You're all caught up!</p>
+                      <p className="text-[12px] text-gray-500">No new notifications for you right now.</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="relative">
+              <button 
+                onClick={() => setAnnouncementsOpen(!announcementsOpen)}
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <Volume2 size={18} />
+              </button>
+              <AnimatePresence>
+                {announcementsOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.1 }}
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col z-50 max-h-96"
+                  >
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="text-[14px] font-bold text-gray-900">What's New 🚀</div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                        <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block">New Feature</span>
+                        <h4 className="text-[13px] font-bold text-gray-900 mb-1">Tally Sync is here!</h4>
+                        <p className="text-[12px] text-gray-600 mb-2">Seamlessly sync your invoices and inventory with Tally. Try it now.</p>
+                        <Link to="/app/tally-sync" className="text-[12px] font-semibold text-blue-600">Explore Tally Sync &rarr;</Link>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <span className="bg-gray-200 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2 inline-block">Update</span>
+                        <h4 className="text-[13px] font-bold text-gray-900 mb-1">Improved E-way Bills</h4>
+                        <p className="text-[12px] text-gray-600">Generate E-way bills faster with our new bulk creation tool.</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             
             {/* User Dropdown */}
             <div className="relative ml-2">
@@ -274,8 +406,14 @@ export default function DashboardLayout() {
                     </div>
 
                     <div className="py-1 border-b border-gray-100">
-                      <Link to="/app/settings/premium" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Zap size={16} className="text-gray-400"/> Check Premium Plans</Link>
-                      <button onClick={() => { logout(); navigate('/') }} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><LogOut size={16} className="text-gray-400"/> Logout</button>
+                      <Link to="/app/settings" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Settings size={16} className="text-gray-400"/> Settings</Link>
+                      <button className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Moon size={16} className="text-gray-400"/> Dark Mode</button>
+                      <button className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><Zap size={16} className="text-gray-400"/> Keyboard Shortcuts</button>
+                      <Link to="/app/help" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-gray-700 font-medium cursor-pointer"><HelpCircle size={16} className="text-gray-400"/> Help & Support</Link>
+                    </div>
+
+                    <div className="py-1">
+                      <button onClick={() => { logout(); navigate('/') }} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-[13px] text-red-600 font-medium cursor-pointer"><LogOut size={16} className="text-red-400"/> Logout</button>
                     </div>
                   </motion.div>
                 )}
@@ -285,9 +423,43 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          
+          {/* Helpbar footer */}
+          <div className="bg-white border-t border-gray-200 p-4 mt-8">
+            <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Need Help?</span>
+                <button className="text-blue-600 hover:underline font-medium">Talk to a specialist</button>
+              </div>
+              <div className="flex items-center gap-4">
+                <a href="tel:+918121335436" className="flex items-center gap-1.5 hover:text-gray-900 transition-colors">
+                  <PhoneCall size={16} /> +91 812 133 5436
+                </a>
+                <span className="text-gray-300">|</span>
+                <button className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors">
+                  <PlayCircle size={16} /> Watch how it works
+                </button>
+              </div>
+            </div>
+          </div>
         </main>
+
+        {/* WhatsApp Floating Button */}
+        <a 
+          href="https://api.whatsapp.com/send?phone=918121335436&text=Hello%20Swipe!%20I%20need%20help..."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(37,211,102,0.4)] hover:scale-105 transition-transform z-50 group"
+        >
+          <MessageCircle size={28} />
+          <span className="absolute right-full mr-4 bg-white text-gray-900 text-[13px] font-bold px-3 py-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Chat on WhatsApp
+          </span>
+        </a>
       </div>
     </div>
   )

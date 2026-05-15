@@ -24,13 +24,33 @@ const useBusinessStore = create((set, get) => ({
       const snapshot = await getDocs(q)
       const businesses = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }))
       
-      set({ businesses, loading: false })
+      let loadedBusinesses = businesses
       
-      if (businesses.length > 0 && !get().activeBusiness) {
-        // Find user's preferred active business or default to first
-        const preferred = businesses.find(b => b._id === user.activeBusiness)
-        set({ activeBusiness: preferred || businesses[0] })
+      if (loadedBusinesses.length === 0) {
+        // Auto-create default business
+        try {
+          const newBizRef = await addDoc(collection(db, 'businesses'), {
+            name: user.name ? `${user.name}'s Business` : 'My Business',
+            type: 'Retail',
+            owner: user.uid,
+            members: [{ uid: user.uid, role: 'admin', joinedAt: new Date().toISOString() }],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          })
+          const newBiz = { _id: newBizRef.id, name: user.name ? `${user.name}'s Business` : 'My Business', owner: user.uid }
+          loadedBusinesses = [newBiz]
+          set({ businesses: loadedBusinesses })
+        } catch (e) {
+          console.error("Failed to auto-create business", e)
+        }
       }
+      
+      if (loadedBusinesses.length > 0 && !get().activeBusiness) {
+        const preferred = loadedBusinesses.find(b => b._id === user.activeBusiness)
+        set({ activeBusiness: preferred || loadedBusinesses[0] })
+      }
+
+      set({ loading: false })
     } catch (err) {
       set({ loading: false, error: err.message })
     }

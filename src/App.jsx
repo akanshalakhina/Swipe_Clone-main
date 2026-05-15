@@ -31,6 +31,8 @@ const CustomersPage = lazy(() => import('./pages/dashboard/CustomersPage'))
 const PaymentsPage = lazy(() => import('./pages/dashboard/PaymentsPage'))
 const ReportsPage = lazy(() => import('./pages/dashboard/ReportsPage'))
 const SettingsPage = lazy(() => import('./pages/dashboard/SettingsPage'))
+const SettingsProfilePage = lazy(() => import('./pages/dashboard/SettingsProfilePage'))
+const SettingsReferralPage = lazy(() => import('./pages/dashboard/SettingsReferralPage'))
 const ComingSoonPage = lazy(() => import('./pages/dashboard/ComingSoonPage'))
 
 import { useEffect } from 'react'
@@ -122,6 +124,10 @@ export default function App() {
           }
         >
           <Route index element={<SettingsPage />} />
+          <Route path="profile" element={<SettingsProfilePage />} />
+          <Route path="referral" element={<SettingsReferralPage />} />
+          {/* Fallbacks for other settings links */}
+          <Route path="*" element={<ComingSoonPage title="Settings Module" />} />
         </Route>
 
         <Route
