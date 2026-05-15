@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Twitter, Facebook, MessageSquare, Zap } from 'lucide-react'
+import { ChevronDown, MessageSquare, Zap } from 'lucide-react'
 import { swipeAISearch } from '../../lib/gemini'
 import FloatingButton from './FloatingButton'
 import MessageBubble from './MessageBubble'
@@ -77,10 +77,10 @@ export default function ChatWidget() {
             <div className="bg-gradient-to-br from-[#2F54EB] to-[#722ED1] shrink-0 relative px-6 py-6 rounded-t-[30px]">
               <div className="absolute top-4 right-4 flex gap-3 text-white/80">
                 <button className="hover:text-white transition-colors">
-                  <Twitter size={18} />
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg>
                 </button>
                 <button className="hover:text-white transition-colors">
-                  <Facebook size={18} />
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
                 </button>
                 <button className="hover:text-white transition-colors">
                   <MessageSquare size={18} />
