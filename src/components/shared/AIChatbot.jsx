@@ -1,100 +1,77 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, X, Send, ChevronDown, Paperclip, Mic, Smile, Image as ImageIcon } from 'lucide-react'
+import { MessageCircle, X, Send, ChevronDown, Paperclip, Mic, Smile, Image as ImageIcon, Loader2 } from 'lucide-react'
 import EmojiPicker from 'emoji-picker-react'
 import { swipeAISearch } from '../../lib/gemini'
 import Button from '../ui/Button'
+import { toast } from 'react-hot-toast'
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false)
-  const [showDemoModal, setShowDemoModal] = useState(false)
-  const [hasProvidedPhone, setHasProvidedPhone] = useState(false)
+  const [hasProvidedPhone, setHasProvidedPhone] = useState(() => localStorage.getItem('swipe_user_phone_set') === 'true')
   const [phoneInput, setPhoneInput] = useState('')
-
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem('swipe_chat_messages')
     return saved ? JSON.parse(saved) : [
-      { role: 'assistant', content: 'Hello, how can we help you?' }
+      { role: 'assistant', content: 'Hello! I am Swipe AI. How can I help you today?' }
     ]
   })
 
-  useEffect(() => {
-    localStorage.setItem('swipe_chat_messages', JSON.stringify(messages))
-  }, [messages])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [showPhonePrompt, setShowPhonePrompt] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState(null)
+
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const emojiPickerRef = useRef(null)
 
-  const [showTooltip, setShowTooltip] = useState(false)
-  const [hasAutomaticallyOpened, setHasAutomaticallyOpened] = useState(false)
-  const [showPhonePrompt, setShowPhonePrompt] = useState(false)
-  const [pendingMessage, setPendingMessage] = useState(null)
-
   const quickReplies = [
-    'I want to schedule a demo',
-    'I want to know more about Swipe',
-    'Help me with pricing details',
-    'I have a question about a feature'
+    'How to create an invoice?',
+    'What is GST?',
+    'Show pricing details',
+    'How to generate E-way bill?'
   ]
 
+  // Persist messages
+  useEffect(() => {
+    localStorage.setItem('swipe_chat_messages', JSON.stringify(messages))
+  }, [messages])
+
+  // Auto-scroll
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   useEffect(() => {
-    const timeoutId = setTimeout(scrollToBottom, 50)
-    return () => clearTimeout(timeoutId)
-  }, [messages, isTyping, hasProvidedPhone, selectedFile])
-
-  useEffect(() => {
-    const demoTimer = setTimeout(() => {
-      setShowDemoModal(true)
-    }, 15000)
-    
-    const tooltipTimer = setTimeout(() => {
-      if (!hasAutomaticallyOpened) {
-        setShowTooltip(true)
-      }
-    }, 3000)
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        if (isOpen) setIsOpen(false)
-        if (showDemoModal) setShowDemoModal(false)
-      }
+    if (isOpen) {
+      setTimeout(scrollToBottom, 100)
     }
+  }, [messages, isTyping, isOpen])
 
-    const handleClickOutsideEmoji = (event) => {
+  // Handle outside clicks for emoji picker
+  useEffect(() => {
+    const handleClickOutside = (event) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
         setShowEmojiPicker(false)
       }
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-    document.addEventListener('mousedown', handleClickOutsideEmoji)
-
-    return () => {
-      clearTimeout(demoTimer)
-      clearTimeout(tooltipTimer)
-      window.removeEventListener('keydown', handleKeyDown)
-      document.removeEventListener('mousedown', handleClickOutsideEmoji)
-    }
-  }, [hasAutomaticallyOpened, isOpen, showDemoModal])
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleSend = async (e, overrideMsg = null) => {
     e?.preventDefault()
     const msgToSend = overrideMsg || input.trim()
-    if ((!msgToSend && !selectedFile)) return
+    if (!msgToSend && !selectedFile) return
 
-    // If phone not provided, we show the prompt but allow the user to type their first message
+    // Lead capture check
     if (!hasProvidedPhone) {
-      setShowPhonePrompt(true)
       setPendingMessage({ msg: msgToSend, file: selectedFile })
+      setShowPhonePrompt(true)
       return
     }
 
@@ -106,194 +83,97 @@ export default function AIChatbot() {
     setShowEmojiPicker(false)
 
     const newMessage = { role: 'user', content: userMsg }
-    
     if (fileToUpload) {
-      if (fileToUpload.type.startsWith('image/')) {
-        newMessage.file = URL.createObjectURL(fileToUpload)
-        newMessage.fileType = 'image'
-      } else {
-        newMessage.file = fileToUpload.name
-        newMessage.fileType = 'document'
-      }
+      newMessage.file = fileToUpload.name
+      newMessage.fileType = fileToUpload.type.startsWith('image/') ? 'image' : 'document'
     }
 
     setMessages(prev => [...prev, newMessage])
     setIsTyping(true)
 
     try {
-      let aiQuery = userMsg || (fileToUpload ? "I sent a file." : "");
-      if (fileToUpload && fileToUpload.textContent) {
-        aiQuery += `\n\n[User attached a file named ${fileToUpload.name} with content:\n${fileToUpload.textContent}]`;
-      }
-      const response = await swipeAISearch(aiQuery)
+      const response = await swipeAISearch(userMsg)
       setMessages(prev => [...prev, { role: 'assistant', content: response }])
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, our support team is currently busy. We will get back to you soon on your phone number!' }])
+      console.error("Chat Error:", error)
+      toast.error("AI connection lost. Please try again.")
+      setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting to my brain right now. Please try again in a moment!" }])
     } finally {
       setIsTyping(false)
     }
   }
 
   const handleSetPhone = () => {
-    if (phoneInput.trim().length >= 10) {
-      setHasProvidedPhone(true)
-      setShowPhonePrompt(false)
-      
-      const newMessages = [
-        ...messages, 
-        { role: 'user', content: phoneInput }, 
-        { role: 'assistant', content: 'Thanks! A representative will connect with you shortly. How can we help you in the meantime?' }
-      ]
-      setMessages(newMessages)
+    if (phoneInput.trim().length < 10) {
+      toast.error("Please enter a valid phone number")
+      return
+    }
 
-      if (pendingMessage) {
-        setTimeout(() => {
-          handleSend({ preventDefault: () => {} }, pendingMessage.msg)
-          setPendingMessage(null)
-        }, 500)
-      }
+    localStorage.setItem('swipe_user_phone_set', 'true')
+    setHasProvidedPhone(true)
+    setShowPhonePrompt(false)
+    
+    setMessages(prev => [
+      ...prev, 
+      { role: 'assistant', content: `Thanks! We've saved your contact. Now, about your question...` }
+    ])
+
+    if (pendingMessage) {
+      handleSend(null, pendingMessage.msg)
+      setPendingMessage(null)
     }
   }
 
   const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert("Your browser doesn't support speech recognition.")
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      toast.error("Speech recognition is not supported in this browser.")
       return
     }
-    
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    const recognition = new SpeechRecognition()
-    
-    recognition.continuous = false
-    recognition.interimResults = false
-    
-    recognition.onstart = () => {
-      setIsListening(true)
-    }
-    
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript
-      setInput(transcript)
-      setIsListening(false)
-      // Automatically send the voice message
-      setTimeout(() => {
-        handleSend({ preventDefault: () => {} }, transcript)
-      }, 500)
-    }
-    
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error", event.error)
-      setIsListening(false)
-    }
-    
-    recognition.onend = () => {
-      setIsListening(false)
-    }
-    
-    recognition.start()
-  }
 
-  const handleFileSelect = async (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      // If it's a readable text file, extract the content so AI can use it
-      if (file.type.startsWith('text/') || file.name.match(/\.(txt|json|csv|md|js|jsx)$/i)) {
-        try {
-          const text = await file.text()
-          file.textContent = text.slice(0, 5000) // Limit size to prevent token limits
-        } catch (err) {
-          console.error("Could not read file text", err)
-        }
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = 'en-IN'
+
+      recognition.onstart = () => setIsListening(true)
+      recognition.onend = () => setIsListening(false)
+      recognition.onerror = (event) => {
+        console.error("Speech Error:", event.error)
+        setIsListening(false)
+        if (event.error === 'network') toast.error("Speech network error. Try again.")
+        else if (event.error === 'not-allowed') toast.error("Microphone permission denied.")
       }
-      setSelectedFile(file)
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript
+        setInput(transcript)
+        // Auto-send after a brief pause
+        setTimeout(() => handleSend(null, transcript), 500)
+      }
+
+      recognition.start()
+    } catch (err) {
+      console.error("Speech Recognition Exception:", err)
+      toast.error("Failed to start voice input.")
     }
-    // Clear input so selecting same file again works
-    e.target.value = ''
-  }
-
-  const onEmojiClick = (emojiObject) => {
-    setInput(prev => prev + emojiObject.emoji)
-  }
-
-  const handleQuickReply = (text) => {
-    setInput(text)
-    // Use a small timeout to let the input state update before sending
-    setTimeout(() => {
-      const fakeEvent = { preventDefault: () => {} };
-      handleSend(fakeEvent, text);
-    }, 100);
   }
 
   const clearChat = () => {
-    if (confirm('Are you sure you want to clear your chat history?')) {
-      setMessages([
-        { role: 'assistant', content: 'Hello, how can we help you?' }
-      ])
+    if (confirm('Clear chat history?')) {
+      setMessages([{ role: 'assistant', content: 'Hello! I am Swipe AI. How can I help you today?' }])
       localStorage.removeItem('swipe_chat_messages')
     }
   }
 
   return (
     <>
-      {/* Demo Modal */}
-      <AnimatePresence>
-        {showDemoModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
-              onClick={() => setShowDemoModal(false)}
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden p-8 text-center"
-            >
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Need more help?</h2>
-              <p className="text-gray-600 mb-8">Book a FREE demo. Our team is here to assist. Contact us now.</p>
-              <div className="flex gap-4">
-                <Button variant="outline" fullWidth onClick={() => setShowDemoModal(false)}>Close</Button>
-                <Button fullWidth onClick={() => { setShowDemoModal(false); setIsOpen(true); setShowTooltip(false); }}>Contact Us</Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Floating Button Container */}
-      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-3">
-        <AnimatePresence>
-          {showTooltip && !isOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-              className="bg-white p-3 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-gray-100 flex items-start gap-3 cursor-pointer relative mr-1 origin-bottom-right"
-              onClick={() => { setShowTooltip(false); setIsOpen(true); setHasAutomaticallyOpened(true); }}
-            >
-              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                <span className="text-lg">👋</span>
-              </div>
-              <div className="text-[14px] text-gray-800 pr-4">
-                <div className="font-bold text-gray-900 mb-0.5">Hi there!</div>
-                <div className="text-[13px] text-gray-600 leading-snug">Let us know if you have any questions!</div>
-              </div>
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowTooltip(false); setHasAutomaticallyOpened(true); }}
-                className="absolute top-2 right-2 w-5 h-5 bg-gray-50 hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={12} />
-              </button>
-              {/* Pointer triangle */}
-              <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-b border-r border-gray-100 transform rotate-45"></div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+      {/* Floating Launcher */}
+      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
         <button
-          onClick={() => { setIsOpen(!isOpen); setShowTooltip(false); setHasAutomaticallyOpened(true); }}
-          className="w-14 h-14 bg-[#0052CC] hover:bg-blue-700 text-white rounded-full shadow-[0_8px_24px_rgba(0,82,204,0.4)] flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-14 h-14 bg-[#0052CC] hover:bg-blue-700 text-white rounded-full shadow-[0_8px_24px_rgba(0,82,204,0.4)] flex items-center justify-center transition-all hover:scale-105 active:scale-95"
         >
           {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
         </button>
@@ -316,15 +196,12 @@ export default function AIChatbot() {
                 <ChevronDown size={24} />
               </button>
               
-              <button 
-                onClick={clearChat}
-                className="absolute top-4 left-4 text-white/40 hover:text-white transition-colors text-[9px] font-bold uppercase tracking-widest z-10"
-              >
+              <button onClick={clearChat} className="absolute top-4 left-4 text-white/40 hover:text-white transition-colors text-[9px] font-bold uppercase tracking-widest z-10">
                 Clear
               </button>
-              
-              <div className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 text-[11px] font-bold px-4 py-1.5 rounded-full mb-6 transition-all cursor-pointer z-10">
-                Message Us
+
+              <div className="bg-white/10 text-[11px] font-bold px-4 py-1.5 rounded-full mb-6 z-10">
+                Swipe AI Support
               </div>
               
               <div className="flex flex-col items-center z-10">
@@ -334,165 +211,127 @@ export default function AIChatbot() {
                   </div>
                   <span className="absolute bottom-0 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0052CC]"></span>
                 </div>
-                <h3 className="font-bold text-[20px] leading-tight tracking-tight">Swipe</h3>
+                <h3 className="font-bold text-[20px] leading-tight">Swipe</h3>
+                <p className="text-[12px] text-white/70">Online • Replies instantly</p>
               </div>
             </div>
 
-            {/* Notification Bar */}
-            {!hasProvidedPhone && (
-              <div className="bg-[#FFF9C4] text-[#856404] px-4 py-2.5 text-[13px] font-medium flex items-center gap-2 border-b border-yellow-200 shrink-0">
-                <span>🔔</span> Please set your phone to continue.
-              </div>
-            )}
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-              <div className="text-center">
-                <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
-              </div>
-              
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[#F8F9FB]">
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center mr-2 shrink-0 mt-1 shadow-sm">
+                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center mr-2 shrink-0 mt-1 shadow-sm border border-gray-100">
                       <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="S" className="w-4 h-4 object-contain" />
                     </div>
                   )}
-                  <div className={`max-w-[80%] px-4 py-2.5 text-[14px] leading-relaxed shadow-sm flex flex-col gap-2 ${
+                  <div className={`max-w-[85%] px-4 py-3 text-[14px] leading-relaxed shadow-sm ${
                     msg.role === 'user' 
-                      ? 'bg-[#0052CC] text-white rounded-2xl rounded-tr-sm' 
-                      : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm border border-gray-100'
+                      ? 'bg-[#0052CC] text-white rounded-[20px] rounded-tr-[4px]' 
+                      : 'bg-white text-gray-800 rounded-[20px] rounded-tl-[4px] border border-gray-100'
                   }`}>
-                    {msg.file && msg.fileType === 'image' && (
-                      <img src={msg.file} alt="uploaded" className="max-w-full rounded-lg max-h-48 object-cover" />
-                    )}
-                    {msg.file && msg.fileType === 'document' && (
-                      <div className={`flex items-center gap-2 p-2 rounded ${msg.role === 'user' ? 'bg-white/20' : 'bg-gray-100'}`}>
-                        <Paperclip size={16} />
-                        <span className="text-xs truncate">{msg.file}</span>
+                    {msg.content}
+                    {msg.file && (
+                      <div className="mt-2 p-2 bg-black/5 rounded flex items-center gap-2 text-[12px]">
+                        {msg.fileType === 'image' ? <ImageIcon size={14}/> : <Paperclip size={14}/>}
+                        {msg.file}
                       </div>
                     )}
-                    {msg.content && <span>{msg.content}</span>}
                   </div>
                 </div>
               ))}
 
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center mr-2 shrink-0 mt-1 shadow-sm">
+                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center mr-2 shrink-0 mt-1 shadow-sm border border-gray-100">
                     <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="S" className="w-4 h-4 object-contain" />
                   </div>
-                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex gap-1 items-center h-[40px]">
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  <div className="bg-white rounded-[20px] rounded-tl-[4px] px-4 py-3 shadow-sm border border-gray-100 flex gap-1">
+                    <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }} className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                    <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }} className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                    <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }} className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
                   </div>
                 </div>
               )}
 
-              {/* Inline Lead Capture */}
-              {showPhonePrompt && !hasProvidedPhone && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-blue-50 mt-2 mx-2 mb-4"
-                >
-                  <div className="text-[15px] font-bold text-gray-900 mb-2 leading-tight">Wait! One last thing...</div>
-                  <div className="text-[13px] text-gray-500 mb-4">Please set your phone number to continue the conversation.</div>
+              {showPhonePrompt && (
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl p-6 shadow-xl border border-blue-50 my-2">
+                  <h4 className="font-bold text-gray-900 mb-2">One last thing!</h4>
+                  <p className="text-[13px] text-gray-600 mb-4">Please leave your phone number so our team can reach out if needed.</p>
                   <div className="flex flex-col gap-2">
                     <input 
                       type="tel" 
                       value={phoneInput}
-                      onChange={e => setPhoneInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleSetPhone()}
-                      placeholder="Enter 10-digit number..." 
-                      className="w-full text-[14px] px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0052CC] focus:outline-none focus:bg-white transition-all"
+                      onChange={e => setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="10-digit phone number"
+                      className="w-full text-[14px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0052CC] outline-none transition-all"
                     />
-                    <button 
-                      onClick={handleSetPhone}
-                      className="w-full bg-[#0052CC] text-white text-[14px] font-semibold py-2.5 rounded-xl hover:bg-blue-700 shadow-sm"
-                    >
-                      Continue Chat
+                    <button onClick={handleSetPhone} className="w-full bg-[#0052CC] text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-200">
+                      Continue to Chat
                     </button>
                   </div>
                 </motion.div>
               )}
-
-              <div ref={messagesEndRef} className="pb-4" />
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
-            <div className="bg-white border-t border-gray-100 shrink-0 relative z-20">
-              {/* Quick Replies */}
-              {!selectedFile && !input.trim() && !showPhonePrompt && (
-                  <div className="px-3 pt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                    {quickReplies.map((reply, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleQuickReply(reply)}
-                        className="whitespace-nowrap px-3 py-1.5 bg-blue-50 text-[#0052CC] text-[12px] font-medium rounded-full border border-blue-100 hover:bg-blue-100 transition-colors shrink-0"
-                      >
-                        {reply}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {selectedFile && (
-                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[13px] text-gray-700 overflow-hidden">
-                      {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} className="text-[#0052CC] shrink-0" /> : <Paperclip size={16} className="text-[#0052CC] shrink-0" />}
-                      <span className="truncate">{selectedFile.name}</span>
-                    </div>
-                    <button onClick={() => setSelectedFile(null)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-                <form onSubmit={handleSend} className="p-3">
-                  {showEmojiPicker && (
-                    <div ref={emojiPickerRef} className="absolute bottom-[70px] left-3 z-[60] shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
-                      <EmojiPicker onEmojiClick={onEmojiClick} width={300} height={350} searchDisabled />
-                    </div>
-                  )}
-                  <div className="relative flex items-center bg-gray-50 border border-gray-200 rounded-full pr-1 pl-2 transition-all focus-within:border-[#0052CC] focus-within:ring-1 focus-within:ring-[#0052CC]">
-                    
-                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-200 shrink-0">
-                      <Smile size={18} />
-                    </button>
-                    
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-200 shrink-0">
-                      <Paperclip size={18} />
-                    </button>
-
+            {/* Input Footer */}
+            <div className="p-3 bg-white border-t border-gray-100">
+              {!showPhonePrompt && !input && !selectedFile && (
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3 px-1">
+                  {quickReplies.map(reply => (
                     <button
-                      type="button"
-                      onClick={handleVoiceInput}
-                      className={`p-2 rounded-full transition-colors shrink-0 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
+                      key={reply}
+                      onClick={() => handleSend(null, reply)}
+                      className="whitespace-nowrap px-3 py-1.5 bg-blue-50 text-[#0052CC] text-[12px] font-medium rounded-full border border-blue-100 hover:bg-blue-100 transition-colors"
                     >
-                      <Mic size={18} />
+                      {reply}
                     </button>
+                  ))}
+                </div>
+              )}
 
-                    <input
-                      type="text"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Write a message..."
-                      className="flex-1 bg-transparent border-none focus:outline-none py-3 px-2 text-[14px] text-gray-900 min-w-0"
-                    />
-                    
-                    <button
-                      type="submit"
-                      disabled={isTyping || (!input.trim() && !selectedFile)}
-                      className="m-1 p-2 bg-[#0052CC] hover:bg-blue-700 text-white rounded-full disabled:opacity-50 disabled:hover:bg-[#0052CC] transition-colors shrink-0 flex items-center justify-center w-8 h-8"
-                    >
-                      <Send size={14} className="ml-0.5" />
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
+              <form onSubmit={handleSend} className="relative flex items-center bg-[#F3F5F7] rounded-2xl pr-1 pl-2 focus-within:ring-2 focus-within:ring-[#0052CC]/20 transition-all">
+                <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                  <Smile size={20} />
+                </button>
+                
+                <input type="file" ref={fileInputRef} onChange={(e) => setSelectedFile(e.target.files[0])} className="hidden" />
+                <button type="button" onClick={() => fileInputRef.current.click()} className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                  <Paperclip size={20} />
+                </button>
+
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a question..."
+                  className="flex-1 bg-transparent py-3 px-2 text-[14px] outline-none"
+                />
+
+                <button 
+                  type="button" 
+                  onClick={handleVoiceInput}
+                  className={`p-2 rounded-full transition-all ${isListening ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-blue-600'}`}
+                >
+                  {isListening ? <Loader2 size={20} className="animate-spin" /> : <Mic size={20} />}
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!input.trim() && !selectedFile}
+                  className="m-1 p-2.5 bg-[#0052CC] text-white rounded-xl shadow-lg disabled:opacity-0 disabled:scale-90 transition-all"
+                >
+                  <Send size={18} />
+                </button>
+              </form>
+
+              {showEmojiPicker && (
+                <div ref={emojiPickerRef} className="absolute bottom-20 left-4 z-[10000]">
+                  <EmojiPicker onEmojiClick={(e) => setInput(prev => prev + e.emoji)} width={300} height={400} />
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
