@@ -124,7 +124,15 @@ export default function AIChatbot() {
     }
   }
 
+  const recognitionRef = useRef(null)
+
   const handleVoiceInput = () => {
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+      return
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
       toast.error("Speech recognition is not supported in this browser.")
@@ -133,30 +141,57 @@ export default function AIChatbot() {
 
     try {
       const recognition = new SpeechRecognition()
+      recognitionRef.current = recognition
+      
       recognition.continuous = false
-      recognition.interimResults = false
+      recognition.interimResults = true // Enable for better feedback
       recognition.lang = 'en-IN'
 
-      recognition.onstart = () => setIsListening(true)
-      recognition.onend = () => setIsListening(false)
+      recognition.onstart = () => {
+        setIsListening(true)
+        toast.success("Listening...", { id: 'voice-status', duration: 2000 })
+      }
+
+      recognition.onend = () => {
+        setIsListening(false)
+        recognitionRef.current = null
+      }
+
       recognition.onerror = (event) => {
         console.error("Speech Error:", event.error)
         setIsListening(false)
-        if (event.error === 'network') toast.error("Speech network error. Try again.")
-        else if (event.error === 'not-allowed') toast.error("Microphone permission denied.")
+        recognitionRef.current = null
+        
+        if (event.error === 'network') {
+          toast.error("Network error: Speech service unreachable. Try using a stable connection.", { id: 'voice-status' })
+        } else if (event.error === 'not-allowed') {
+          toast.error("Microphone permission denied. Please enable it in browser settings.", { id: 'voice-status' })
+        } else {
+          toast.error(`Speech error: ${event.error}`, { id: 'voice-status' })
+        }
       }
 
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript
+        const transcript = Array.from(event.results)
+          .map(result => result[0])
+          .map(result => result.transcript)
+          .join('')
+        
         setInput(transcript)
-        // Auto-send after a brief pause
-        setTimeout(() => handleSend(null, transcript), 500)
+        
+        if (event.results[0].isFinal) {
+          setTimeout(() => {
+            handleSend(null, transcript)
+            recognition.stop()
+          }, 800)
+        }
       }
 
       recognition.start()
     } catch (err) {
       console.error("Speech Recognition Exception:", err)
-      toast.error("Failed to start voice input.")
+      toast.error("Failed to start voice input. Check microphone permissions.")
+      setIsListening(false)
     }
   }
 
@@ -305,7 +340,7 @@ export default function AIChatbot() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask a question..."
+                  placeholder={isListening ? "Listening..." : "Ask a question..."}
                   className="flex-1 bg-transparent py-3 px-2 text-[14px] outline-none"
                 />
 
