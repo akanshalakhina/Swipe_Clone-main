@@ -11,9 +11,16 @@ export default function AIChatbot() {
   const [hasProvidedPhone, setHasProvidedPhone] = useState(false)
   const [phoneInput, setPhoneInput] = useState('')
 
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello, how can we help you?' }
-  ])
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('swipe_chat_messages')
+    return saved ? JSON.parse(saved) : [
+      { role: 'assistant', content: 'Hello, how can we help you?' }
+    ]
+  })
+
+  useEffect(() => {
+    localStorage.setItem('swipe_chat_messages', JSON.stringify(messages))
+  }, [messages])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
@@ -25,6 +32,15 @@ export default function AIChatbot() {
 
   const [showTooltip, setShowTooltip] = useState(false)
   const [hasAutomaticallyOpened, setHasAutomaticallyOpened] = useState(false)
+  const [showPhonePrompt, setShowPhonePrompt] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState(null)
+
+  const quickReplies = [
+    'I want to schedule a demo',
+    'I want to know more about Swipe',
+    'Help me with pricing details',
+    'I have a question about a feature'
+  ]
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -70,11 +86,19 @@ export default function AIChatbot() {
     }
   }, [hasAutomaticallyOpened, isOpen, showDemoModal])
 
-  const handleSend = async (e) => {
+  const handleSend = async (e, overrideMsg = null) => {
     e?.preventDefault()
-    if ((!input.trim() && !selectedFile) || !hasProvidedPhone) return
+    const msgToSend = overrideMsg || input.trim()
+    if ((!msgToSend && !selectedFile)) return
 
-    const userMsg = input.trim()
+    // If phone not provided, we show the prompt but allow the user to type their first message
+    if (!hasProvidedPhone) {
+      setShowPhonePrompt(true)
+      setPendingMessage({ msg: msgToSend, file: selectedFile })
+      return
+    }
+
+    const userMsg = msgToSend
     const fileToUpload = selectedFile
     
     setInput('')
@@ -113,11 +137,21 @@ export default function AIChatbot() {
   const handleSetPhone = () => {
     if (phoneInput.trim().length >= 10) {
       setHasProvidedPhone(true)
-      setMessages(prev => [
-        ...prev, 
+      setShowPhonePrompt(false)
+      
+      const newMessages = [
+        ...messages, 
         { role: 'user', content: phoneInput }, 
         { role: 'assistant', content: 'Thanks! A representative will connect with you shortly. How can we help you in the meantime?' }
-      ])
+      ]
+      setMessages(newMessages)
+
+      if (pendingMessage) {
+        setTimeout(() => {
+          handleSend({ preventDefault: () => {} }, pendingMessage.msg)
+          setPendingMessage(null)
+        }, 500)
+      }
     }
   }
 
@@ -139,8 +173,12 @@ export default function AIChatbot() {
     
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript
-      setInput(prev => prev + (prev ? ' ' : '') + transcript)
+      setInput(transcript)
       setIsListening(false)
+      // Automatically send the voice message
+      setTimeout(() => {
+        handleSend({ preventDefault: () => {} }, transcript)
+      }, 500)
     }
     
     recognition.onerror = (event) => {
@@ -177,6 +215,24 @@ export default function AIChatbot() {
     setInput(prev => prev + emojiObject.emoji)
   }
 
+  const handleQuickReply = (text) => {
+    setInput(text)
+    // Use a small timeout to let the input state update before sending
+    setTimeout(() => {
+      const fakeEvent = { preventDefault: () => {} };
+      handleSend(fakeEvent, text);
+    }, 100);
+  }
+
+  const clearChat = () => {
+    if (confirm('Are you sure you want to clear your chat history?')) {
+      setMessages([
+        { role: 'assistant', content: 'Hello, how can we help you?' }
+      ])
+      localStorage.removeItem('swipe_chat_messages')
+    }
+  }
+
   return (
     <>
       {/* Demo Modal */}
@@ -206,7 +262,7 @@ export default function AIChatbot() {
       </AnimatePresence>
 
       {/* Floating Button Container */}
-      <div className="fixed bottom-6 right-6 z-[55] flex flex-col items-end gap-3">
+      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-3">
         <AnimatePresence>
           {showTooltip && !isOpen && (
             <motion.div
@@ -247,30 +303,38 @@ export default function AIChatbot() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.95, transformOrigin: 'bottom right' }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="fixed bottom-[90px] right-4 sm:right-6 w-[calc(100vw-32px)] sm:w-[380px] h-[600px] max-h-[calc(100vh-120px)] bg-[#F5F5F5] rounded-[24px] shadow-2xl flex flex-col overflow-hidden z-50 border border-gray-100"
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed bottom-[90px] right-4 sm:right-6 w-[calc(100vw-32px)] sm:w-[380px] h-[600px] max-h-[calc(100vh-120px)] bg-white rounded-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden z-[9999] border border-gray-100"
           >
             {/* Header */}
-            <div className="bg-[#0052CC] px-5 py-5 flex flex-col items-center text-white shrink-0 relative overflow-hidden" style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, rgba(255,255,255,0.05) 2px, transparent 0)', backgroundSize: '24px 24px' }}>
-              <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors">
+            <div className="bg-[#0052CC] px-6 py-6 flex flex-col items-center text-white shrink-0 relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
+              <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors z-10">
                 <ChevronDown size={24} />
               </button>
               
-              <div className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-[12px] font-semibold px-3 py-1 rounded-full mb-4 transition-colors cursor-pointer">
+              <button 
+                onClick={clearChat}
+                className="absolute top-4 left-4 text-white/40 hover:text-white transition-colors text-[9px] font-bold uppercase tracking-widest z-10"
+              >
+                Clear
+              </button>
+              
+              <div className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 text-[11px] font-bold px-4 py-1.5 rounded-full mb-6 transition-all cursor-pointer z-10">
                 Message Us
               </div>
               
-              <div className="flex flex-col items-center">
-                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center overflow-hidden border-[3px] border-[#0052CC] shadow-[0_0_0_2px_rgba(255,255,255,0.2)] mb-2">
-                  <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="Swipe" className="w-8 h-8 object-contain" />
+              <div className="flex flex-col items-center z-10">
+                <div className="relative mb-3">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden border-[3px] border-white/20 shadow-lg">
+                    <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="Swipe" className="w-10 h-10 object-contain" />
+                  </div>
+                  <span className="absolute bottom-0 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0052CC]"></span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-[18px] leading-tight tracking-tight">Swipe</h3>
-                  <span className="w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-[#0052CC]"></span>
-                </div>
+                <h3 className="font-bold text-[20px] leading-tight tracking-tight">Swipe</h3>
               </div>
             </div>
 
@@ -325,33 +389,55 @@ export default function AIChatbot() {
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} className="pb-2" />
+
+              {/* Inline Lead Capture */}
+              {showPhonePrompt && !hasProvidedPhone && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-white rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-blue-50 mt-2 mx-2 mb-4"
+                >
+                  <div className="text-[15px] font-bold text-gray-900 mb-2 leading-tight">Wait! One last thing...</div>
+                  <div className="text-[13px] text-gray-500 mb-4">Please set your phone number to continue the conversation.</div>
+                  <div className="flex flex-col gap-2">
+                    <input 
+                      type="tel" 
+                      value={phoneInput}
+                      onChange={e => setPhoneInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleSetPhone()}
+                      placeholder="Enter 10-digit number..." 
+                      className="w-full text-[14px] px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0052CC] focus:outline-none focus:bg-white transition-all"
+                    />
+                    <button 
+                      onClick={handleSetPhone}
+                      className="w-full bg-[#0052CC] text-white text-[14px] font-semibold py-2.5 rounded-xl hover:bg-blue-700 shadow-sm"
+                    >
+                      Continue Chat
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              <div ref={messagesEndRef} className="pb-4" />
             </div>
 
-            {/* Input Area / Lead Capture Card */}
-            {!hasProvidedPhone ? (
-              <div className="bg-white rounded-t-2xl shadow-[0_-4px_24px_rgba(0,0,0,0.06)] p-5 pb-6 shrink-0 relative z-10 border-t border-gray-100">
-                <div className="text-[16px] font-bold text-gray-900 mb-4 leading-tight">What is your phone number?</div>
-                <div className="flex flex-col gap-3">
-                  <input 
-                    type="tel" 
-                    value={phoneInput}
-                    onChange={e => setPhoneInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSetPhone()}
-                    placeholder="Enter your phone number..." 
-                    className="w-full text-[14px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0052CC] focus:outline-none transition-shadow text-gray-800"
-                  />
-                  <button 
-                    onClick={handleSetPhone}
-                    disabled={phoneInput.trim().length < 10}
-                    className="w-full bg-[#0052CC] text-white text-[15px] font-semibold py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-[#0052CC] transition-colors shadow-sm"
-                  >
-                    Set my phone
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white border-t border-gray-100 shrink-0 relative z-20">
+            {/* Input Area */}
+            <div className="bg-white border-t border-gray-100 shrink-0 relative z-20">
+              {/* Quick Replies */}
+              {!selectedFile && !input.trim() && !showPhonePrompt && (
+                  <div className="px-3 pt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {quickReplies.map((reply, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleQuickReply(reply)}
+                        className="whitespace-nowrap px-3 py-1.5 bg-blue-50 text-[#0052CC] text-[12px] font-medium rounded-full border border-blue-100 hover:bg-blue-100 transition-colors shrink-0"
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {selectedFile && (
                   <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-[13px] text-gray-700 overflow-hidden">

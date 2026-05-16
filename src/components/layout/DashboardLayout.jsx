@@ -449,18 +449,7 @@ export default function DashboardLayout() {
           </div>
         </main>
 
-        {/* WhatsApp Floating Button */}
-        <a 
-          href="https://api.whatsapp.com/send?phone=918121335436&text=Hello%20Swipe!%20I%20need%20help..."
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(37,211,102,0.4)] hover:scale-105 transition-transform z-50 group"
-        >
-          <MessageCircle size={28} />
-          <span className="absolute right-full mr-4 bg-white text-gray-900 text-[13px] font-bold px-3 py-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Chat on WhatsApp
-          </span>
-        </a>
+        {/* WhatsApp Floating Button removed to prevent overlap with AIChatbot */}
       </div>
     </div>
   )

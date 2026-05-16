@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import Navbar from './Navbar'
 import Footer from './Footer'
-import ChatBot from '../shared/ChatBot'
+// ChatBot removed to prevent duplication
 import SignupPrompt from '../shared/SignupPrompt'
 import ContactModal from '../shared/ContactModal'
 
@@ -13,7 +13,7 @@ export default function LandingLayout() {
         <Outlet />
       </main>
       <Footer />
-      <ChatBot />
+      {/* Global AIChatbot is handled in App.jsx */}
       <SignupPrompt />
       <ContactModal />
     </div>
