@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, X, Send, ChevronDown } from 'lucide-react'
+import { MessageCircle, X, Send, ChevronDown, Paperclip, Mic, Smile, Image as ImageIcon } from 'lucide-react'
+import EmojiPicker from 'emoji-picker-react'
 import { swipeAISearch } from '../../lib/gemini'
 import Button from '../ui/Button'
 
@@ -15,7 +16,12 @@ export default function AIChatbot() {
   ])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef(null)
+  const fileInputRef = useRef(null)
+  const emojiPickerRef = useRef(null)
 
   const [showTooltip, setShowTooltip] = useState(false)
   const [hasAutomaticallyOpened, setHasAutomaticallyOpened] = useState(false)
@@ -25,8 +31,9 @@ export default function AIChatbot() {
   }
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, isTyping, hasProvidedPhone])
+    const timeoutId = setTimeout(scrollToBottom, 50)
+    return () => clearTimeout(timeoutId)
+  }, [messages, isTyping, hasProvidedPhone, selectedFile])
 
   useEffect(() => {
     const demoTimer = setTimeout(() => {
@@ -39,23 +46,62 @@ export default function AIChatbot() {
       }
     }, 3000)
 
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (isOpen) setIsOpen(false)
+        if (showDemoModal) setShowDemoModal(false)
+      }
+    }
+
+    const handleClickOutsideEmoji = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('mousedown', handleClickOutsideEmoji)
+
     return () => {
       clearTimeout(demoTimer)
       clearTimeout(tooltipTimer)
+      window.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('mousedown', handleClickOutsideEmoji)
     }
-  }, [hasAutomaticallyOpened])
+  }, [hasAutomaticallyOpened, isOpen, showDemoModal])
 
   const handleSend = async (e) => {
-    e.preventDefault()
-    if (!input.trim() || !hasProvidedPhone) return
+    e?.preventDefault()
+    if ((!input.trim() && !selectedFile) || !hasProvidedPhone) return
 
     const userMsg = input.trim()
+    const fileToUpload = selectedFile
+    
     setInput('')
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }])
+    setSelectedFile(null)
+    setShowEmojiPicker(false)
+
+    const newMessage = { role: 'user', content: userMsg }
+    
+    if (fileToUpload) {
+      if (fileToUpload.type.startsWith('image/')) {
+        newMessage.file = URL.createObjectURL(fileToUpload)
+        newMessage.fileType = 'image'
+      } else {
+        newMessage.file = fileToUpload.name
+        newMessage.fileType = 'document'
+      }
+    }
+
+    setMessages(prev => [...prev, newMessage])
     setIsTyping(true)
 
     try {
-      const response = await swipeAISearch(userMsg)
+      let aiQuery = userMsg || (fileToUpload ? "I sent a file." : "");
+      if (fileToUpload && fileToUpload.textContent) {
+        aiQuery += `\n\n[User attached a file named ${fileToUpload.name} with content:\n${fileToUpload.textContent}]`;
+      }
+      const response = await swipeAISearch(aiQuery)
       setMessages(prev => [...prev, { role: 'assistant', content: response }])
     } catch (error) {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, our support team is currently busy. We will get back to you soon on your phone number!' }])
@@ -73,6 +119,62 @@ export default function AIChatbot() {
         { role: 'assistant', content: 'Thanks! A representative will connect with you shortly. How can we help you in the meantime?' }
       ])
     }
+  }
+
+  const handleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert("Your browser doesn't support speech recognition.")
+      return
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    const recognition = new SpeechRecognition()
+    
+    recognition.continuous = false
+    recognition.interimResults = false
+    
+    recognition.onstart = () => {
+      setIsListening(true)
+    }
+    
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript
+      setInput(prev => prev + (prev ? ' ' : '') + transcript)
+      setIsListening(false)
+    }
+    
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error)
+      setIsListening(false)
+    }
+    
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+    
+    recognition.start()
+  }
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // If it's a readable text file, extract the content so AI can use it
+      if (file.type.startsWith('text/') || file.name.match(/\.(txt|json|csv|md|js|jsx)$/i)) {
+        try {
+          const text = await file.text()
+          file.textContent = text.slice(0, 5000) // Limit size to prevent token limits
+        } catch (err) {
+          console.error("Could not read file text", err)
+        }
+      }
+      setSelectedFile(file)
+    }
+    // Clear input so selecting same file again works
+    e.target.value = ''
+  }
+
+  const onEmojiClick = (emojiObject) => {
+    setInput(prev => prev + emojiObject.emoji)
   }
 
   return (
@@ -149,7 +251,7 @@ export default function AIChatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-[90px] right-6 w-[350px] h-[600px] max-h-[calc(100vh-120px)] bg-[#F5F5F5] rounded-[24px] shadow-2xl flex flex-col overflow-hidden z-50 border border-gray-100"
+            className="fixed bottom-[90px] right-4 sm:right-6 w-[calc(100vw-32px)] sm:w-[380px] h-[600px] max-h-[calc(100vh-120px)] bg-[#F5F5F5] rounded-[24px] shadow-2xl flex flex-col overflow-hidden z-50 border border-gray-100"
           >
             {/* Header */}
             <div className="bg-[#0052CC] px-5 py-5 flex flex-col items-center text-white shrink-0 relative overflow-hidden" style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, rgba(255,255,255,0.05) 2px, transparent 0)', backgroundSize: '24px 24px' }}>
@@ -192,12 +294,21 @@ export default function AIChatbot() {
                       <img src="https://getswipe.azureedge.net/getswipe/images/logo.svg" alt="S" className="w-4 h-4 object-contain" />
                     </div>
                   )}
-                  <div className={`max-w-[80%] px-4 py-2.5 text-[14px] leading-relaxed shadow-sm ${
+                  <div className={`max-w-[80%] px-4 py-2.5 text-[14px] leading-relaxed shadow-sm flex flex-col gap-2 ${
                     msg.role === 'user' 
                       ? 'bg-[#0052CC] text-white rounded-2xl rounded-tr-sm' 
-                      : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm'
+                      : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm border border-gray-100'
                   }`}>
-                    {msg.content}
+                    {msg.file && msg.fileType === 'image' && (
+                      <img src={msg.file} alt="uploaded" className="max-w-full rounded-lg max-h-48 object-cover" />
+                    )}
+                    {msg.file && msg.fileType === 'document' && (
+                      <div className={`flex items-center gap-2 p-2 rounded ${msg.role === 'user' ? 'bg-white/20' : 'bg-gray-100'}`}>
+                        <Paperclip size={16} />
+                        <span className="text-xs truncate">{msg.file}</span>
+                      </div>
+                    )}
+                    {msg.content && <span>{msg.content}</span>}
                   </div>
                 </div>
               ))}
@@ -240,24 +351,61 @@ export default function AIChatbot() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 shrink-0">
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Write a message..."
-                    className="w-full bg-gray-50 border border-gray-200 rounded-full pl-4 pr-12 py-3 text-[14px] focus:outline-none focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC] transition-all text-gray-900"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!input.trim() || isTyping}
-                    className="absolute right-1.5 p-2 bg-[#0052CC] hover:bg-blue-700 text-white rounded-full disabled:opacity-50 disabled:hover:bg-[#0052CC] transition-colors"
-                  >
-                    <Send size={16} className="ml-0.5" />
-                  </button>
-                </div>
-              </form>
+              <div className="bg-white border-t border-gray-100 shrink-0 relative z-20">
+                {selectedFile && (
+                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[13px] text-gray-700 overflow-hidden">
+                      {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} className="text-[#0052CC] shrink-0" /> : <Paperclip size={16} className="text-[#0052CC] shrink-0" />}
+                      <span className="truncate">{selectedFile.name}</span>
+                    </div>
+                    <button onClick={() => setSelectedFile(null)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                <form onSubmit={handleSend} className="p-3">
+                  {showEmojiPicker && (
+                    <div ref={emojiPickerRef} className="absolute bottom-[70px] left-3 z-[60] shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
+                      <EmojiPicker onEmojiClick={onEmojiClick} width={300} height={350} searchDisabled />
+                    </div>
+                  )}
+                  <div className="relative flex items-center bg-gray-50 border border-gray-200 rounded-full pr-1 pl-2 transition-all focus-within:border-[#0052CC] focus-within:ring-1 focus-within:ring-[#0052CC]">
+                    
+                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-200 shrink-0">
+                      <Smile size={18} />
+                    </button>
+                    
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-200 shrink-0">
+                      <Paperclip size={18} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleVoiceInput}
+                      className={`p-2 rounded-full transition-colors shrink-0 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      <Mic size={18} />
+                    </button>
+
+                    <input
+                      type="text"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="Write a message..."
+                      className="flex-1 bg-transparent border-none focus:outline-none py-3 px-2 text-[14px] text-gray-900 min-w-0"
+                    />
+                    
+                    <button
+                      type="submit"
+                      disabled={isTyping || (!input.trim() && !selectedFile)}
+                      className="m-1 p-2 bg-[#0052CC] hover:bg-blue-700 text-white rounded-full disabled:opacity-50 disabled:hover:bg-[#0052CC] transition-colors shrink-0 flex items-center justify-center w-8 h-8"
+                    >
+                      <Send size={14} className="ml-0.5" />
+                    </button>
+                  </div>
+                </form>
+              </div>
             )}
           </motion.div>
         )}
